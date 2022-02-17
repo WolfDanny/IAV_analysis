@@ -3,6 +3,7 @@
 
 
 figures/**
+.idea
 .pre-commit-config.yaml
 *.pdf
 *.png
