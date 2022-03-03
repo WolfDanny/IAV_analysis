@@ -96,9 +96,7 @@ def timepoint_extraction(
                         values = [current_value / values[0] for current_value in values]
                     else:
                         print(
-                            "Sample for {} could not be normalised.".format(
-                                time_names[time_name_index]
-                            )
+                            f"Sample for {time_names[time_name_index]} could not be normalised."
                         )
                 data.append(tuple(values))
                 # total_data.append(tuple(neg_values))
@@ -119,7 +117,6 @@ def data_extraction(
 
     data = []
     neg_data = []
-    indices = []
 
     if timepoints is None:
         num_timepoints = len(time_names)
@@ -130,16 +127,18 @@ def data_extraction(
         csvfile = csv.reader(file)
         row = next(csvfile)
 
-        indices.append(row.index(headers[0]))  # Tissue
-        indices.append(row.index(headers[1]))  # time_name
-        indices.append(row.index(headers[2]))  # WT Single
-        indices.append(row.index(headers[3]))  # T8A Ssingle
-        indices.append(row.index(headers[4]))  # WT T8A Double
-        indices.append(row.index(headers[5]))  # N3A Single
-        indices.append(row.index(headers[6]))  # WT N3A Double
-        indices.append(row.index(headers[7]))  # T8A N3A Double
-        indices.append(row.index(headers[8]))  # Triple
-        indices.append(row.index(headers[9]))  # Negative
+        indices = [
+            row.index(headers[0]),  # Tissue
+            row.index(headers[1]),  # time_name
+            row.index(headers[2]),  # WT Single
+            row.index(headers[3]),  # T8A Single
+            row.index(headers[4]),  # WT T8A Double
+            row.index(headers[5]),  # N3A Single
+            row.index(headers[6]),  # WT N3A Double
+            row.index(headers[7]),  # T8A N3A Double
+            row.index(headers[8]),  # Triple
+            row.index(headers[9]),  # Negative
+        ]
 
     for current_time_name in range(num_timepoints):
         current_col, neg_current_col = timepoint_extraction(
@@ -226,7 +225,7 @@ def venn_plots(
     title=None,
     file_name=None,
     normalised=False,
-    extension="pdf",
+    extension=None,
     show=False,
 ):
 
@@ -272,7 +271,7 @@ def venn_plots(
                 fig_list[row][col].axis("off")
                 if populations[row][col] == (0, 0, 0, 0, 0, 0, 0):
                     fig_list[row][col].set_title(
-                        "Mouse {}".format(row + 1), fontsize=65, color="grey"
+                        f"Mouse {row + 1}", fontsize=65, color="grey"
                     )
                 continue
 
@@ -283,7 +282,7 @@ def venn_plots(
                     ax=fig_list[row][col],
                 )
                 fig_list[row][col].set_title(
-                    "Mouse {}".format(row + 1), fontsize=65, color="grey"
+                    f"Mouse {row + 1}", fontsize=65, color="grey"
                 )
             elif means[col] != (-1, 0, 0, 0, 0, 0, 0):
                 current = venn3(
@@ -304,8 +303,11 @@ def venn_plots(
                     current.get_patch_by_id(patch).set_color(colour)
                 except AttributeError:
                     pass
+
+    if extension is None:
+        extension = "pdf"
     if file_name is not None:
-        fig.savefig("{0}.{1}".format(file_name, extension))
+        fig.savefig(f"{file_name}.{extension}")
     if not show:
         plt.close("all")
 
@@ -318,7 +320,7 @@ def slope_plots(
     patch_names,
     patch_indices,
     file_name=None,
-    extension="pdf",
+    extension=None,
     zeroline=False,
     show=False,
 ):
@@ -358,7 +360,7 @@ def slope_plots(
 
             if current_col == 0:
                 fig_list[current_row][current_col].set_ylabel(
-                    "{} challenge (\\# of cells)".format(patch_names[current_row]),
+                    f"{patch_names[current_row]} challenge (\\# of cells)",
                     fontsize=label_size,
                 )
             else:
@@ -486,8 +488,10 @@ def slope_plots(
             bbox=dict(edgecolor="w", facecolor="w", alpha=1),
         )
 
+    if extension is None:
+        extension = "pdf"
     if file_name is not None:
-        fig.savefig("{0}.{1}".format(file_name, extension))
+        fig.savefig(f"{file_name}.{extension}")
     if not show:
         plt.close("all")
 
