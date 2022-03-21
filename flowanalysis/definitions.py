@@ -1,4 +1,5 @@
 import csv
+from copy import deepcopy
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,33 +16,44 @@ plt.rcParams["font.family"] = "serif"
 plt.rcParams["mathtext.fontset"] = "dejavuserif"
 
 
-def header_clipping(experiment, cd45="+", check=False):
+def header_clipping(experiment, cd45="+", filename=None, check=False):
 
-    with open(f"{experiment} priming/NTW-CD45{cd45}.csv") as oldfile:
-        oldcsv = csv.reader(oldfile)
+    if filename is None:
+        filename = "NTW-CD45"
+        newname = f"{experiment}{cd45}.csv"
+    else:
+        newname = f"{experiment}-{filename}{cd45}.csv"
 
-        with open(f"{experiment}{cd45}.csv", "w") as newfile:
-            newcsv = csv.writer(newfile)
+    with open(f"{experiment} priming/{filename}{cd45}.csv") as old_file:
+        old_csv = csv.reader(old_file)
+
+        with open(newname, "w") as newfile:
+            new_csv = csv.writer(newfile)
 
             header = True
-            for row in oldcsv:
+            for row in old_csv:
                 if header:
                     new_names = []
                     for current_name in row:
                         new_names.append(current_name.rstrip())
-                    newcsv.writerow(new_names)
+                    new_csv.writerow(new_names)
                     header = False
                 else:
-                    newcsv.writerow(row)
+                    new_csv.writerow(row)
             if check:
                 print(new_names)
 
 
-def time_name_list(experiment, headers, cd45="+"):
+def time_name_list(experiment, headers, cd45="+", filename=None):
+
+    if filename is None:
+        filename = f"{experiment}{cd45}.csv"
+    else:
+        filename = f"{experiment}-{filename}{cd45}.csv"
 
     names = []
 
-    with open(f"{experiment}{cd45}.csv", "r") as file:
+    with open(filename, "r") as file:
         csvfile = csv.reader(file)
 
         header = True
@@ -55,35 +67,32 @@ def time_name_list(experiment, headers, cd45="+"):
     return names
 
 
-def timepoint_extraction(
-    experiment,
+def _timepoint_extraction_challenge(
     organ,
     indices,
     time_names,
     time_name_index,
     normalise,
     double_count,
-    cd45="+",
+    filename,
 ):
+
     # RETURN A THIRD LIST WITH NEGATIVE DATA
     data = []
     total_data = []
 
-    with open(f"{experiment}{cd45}.csv", "r") as file:
+    with open(filename, "r") as file:
         csvfile = csv.reader(file)
+        next(csvfile)
 
-        header = True
         for row in csvfile:
-            if header:
-                header = False
-                continue
-            elif (
+            if (
                 row[indices[0]].rstrip().lower() == organ.lower()
                 and row[indices[1]].rstrip().lower()
                 == time_names[time_name_index].rstrip().lower()
             ):
                 values = [int(float(row[index])) for index in indices[2:9]]
-                # neg_values = [int(float(row[indices[9]])) - sum(values)]
+                neg_values = [int(float(row[indices[9]])) - sum(values)]
                 if double_count:
                     values[2] -= values[6]
                     values[4] -= values[6]
@@ -92,16 +101,142 @@ def timepoint_extraction(
                     values[1] -= values[2] + values[5] + values[6]
                     values[3] -= values[4] + values[5] + values[6]
                 if normalise:
-                    if values[0] > 0:
-                        values = [current_value / values[0] for current_value in values]
+                    if sum(values) + sum(neg_values) > 0:
+                        values = [
+                            current_value / (sum(values) + sum(neg_values))
+                            for current_value in values
+                        ]
+                        neg_values = [
+                            current_value / (sum(values) + sum(neg_values))
+                            for current_value in neg_values
+                        ]
                     else:
                         print(
                             f"Sample for {time_names[time_name_index]} could not be normalised."
                         )
                 data.append(tuple(values))
-                # total_data.append(tuple(neg_values))
-                total_data.append(tuple([int(float(row[indices[9]]))]))
+                total_data.append(tuple(neg_values))
     return data, total_data
+
+
+def _timepoint_extraction_naive(
+    organ,
+    indices,
+    time_names,
+    time_name_index,
+    normalise,
+    double_count,
+    column,
+    filename,
+):
+
+    # RETURN A THIRD LIST WITH NEGATIVE DATA
+    non_zero_positions = {"WT": (0, 2, 4, 6), "T8A": (1, 2, 5, 6), "N3A": (3, 4, 5, 6)}
+    data = []
+
+    with open(filename, "r") as file:
+        csvfile = csv.reader(file)
+        next(csvfile)
+
+        for row in csvfile:
+            if (
+                row[indices[0]].rstrip().lower() == organ.lower()
+                and row[indices[1]].rstrip().lower()
+                == time_names[time_name_index].rstrip().lower()
+            ):
+                values = [0 for _ in range(7)]
+                for index, value_index in zip(non_zero_positions[column], indices[2:6]):
+                    values[index] = int(float(row[value_index]))
+                if double_count:
+                    values[2] -= values[6]
+                    values[4] -= values[6]
+                    values[5] -= values[6]
+                    values[0] -= values[2] + values[4] + values[6]
+                    values[1] -= values[2] + values[5] + values[6]
+                    values[3] -= values[4] + values[5] + values[6]
+                if normalise:
+                    if sum(values) > 0:
+                        values = [
+                            current_value / sum(values) for current_value in values
+                        ]
+                    else:
+                        print(
+                            f"Sample for {time_names[time_name_index]} could not be normalised."
+                        )
+                data.append(tuple(values))
+    return data, None
+
+
+def timepoint_extraction(
+    organ,
+    indices,
+    time_names,
+    time_name_index,
+    normalise,
+    double_count,
+    data_type,
+    column,
+    filename,
+):
+
+    if data_type is None:
+        return _timepoint_extraction_challenge(
+            organ,
+            indices,
+            time_names,
+            time_name_index,
+            normalise,
+            double_count,
+            filename,
+        )
+    elif data_type == "naive" and column is not None:
+        return _timepoint_extraction_naive(
+            organ,
+            indices,
+            time_names,
+            time_name_index,
+            normalise,
+            double_count,
+            column,
+            filename,
+        )
+
+
+def _column_index(filename, headers, data_type=None):
+
+    if data_type is None:
+        with open(filename, "r") as file:
+            csvfile = csv.reader(file)
+            row = next(csvfile)
+
+            indices = [
+                row.index(headers[0]),  # Tissue
+                row.index(headers[1]),  # time_name
+                row.index(headers[2]),  # WT Single
+                row.index(headers[3]),  # T8A Single
+                row.index(headers[4]),  # WT T8A Double
+                row.index(headers[5]),  # N3A Single
+                row.index(headers[6]),  # WT N3A Double
+                row.index(headers[7]),  # T8A N3A Double
+                row.index(headers[8]),  # Triple
+                row.index(headers[9]),  # Negative
+            ]
+    elif data_type == "naive":
+        with open(filename, "r") as file:
+            csvfile = csv.reader(file)
+            row = next(csvfile)
+
+            indices = [
+                row.index(headers[0]),  # Tissue
+                row.index(headers[1]),  # time_name
+                row.index(headers[2]),  # Single
+                row.index(headers[3]),  # First Double
+                row.index(headers[4]),  # Second Double
+                row.index(headers[5]),  # Triple
+                row.index(headers[6]),  # Negative
+            ]
+
+    return indices
 
 
 def data_extraction(
@@ -111,9 +246,20 @@ def data_extraction(
     time_names,
     normalise=False,
     double_count=False,
-    cd45="+",
+    cd45=None,
     timepoints=None,
+    data_type=None,
+    column=None,
+    filename=None,
 ):
+
+    if cd45 is None:
+        cd45 = "+"
+
+    if filename is None:
+        filename = f"{experiment}{cd45}.csv"
+    else:
+        filename = f"{experiment}-{filename}{cd45}.csv"
 
     data = []
     neg_data = []
@@ -123,33 +269,19 @@ def data_extraction(
     else:
         num_timepoints = timepoints
 
-    with open(f"{experiment}{cd45}.csv", "r") as file:
-        csvfile = csv.reader(file)
-        row = next(csvfile)
-
-        indices = [
-            row.index(headers[0]),  # Tissue
-            row.index(headers[1]),  # time_name
-            row.index(headers[2]),  # WT Single
-            row.index(headers[3]),  # T8A Single
-            row.index(headers[4]),  # WT T8A Double
-            row.index(headers[5]),  # N3A Single
-            row.index(headers[6]),  # WT N3A Double
-            row.index(headers[7]),  # T8A N3A Double
-            row.index(headers[8]),  # Triple
-            row.index(headers[9]),  # Negative
-        ]
+    indices = _column_index(filename, headers, data_type=data_type)
 
     for current_time_name in range(num_timepoints):
         current_col, neg_current_col = timepoint_extraction(
-            experiment,
             organ,
             indices,
             time_names,
             current_time_name,
             normalise,
             double_count,
-            cd45=cd45,
+            data_type,
+            column,
+            filename,
         )
         for _ in range(len(current_col) - len(data)):
             previous = []
@@ -164,7 +296,7 @@ def data_extraction(
                 row.append((-1, 0, 0, 0, 0, 0, 0))
             for row in neg_data:
                 row.append((-1,))
-        for current_mouse in range(len(current_col)):
+        for current_mouse, _ in enumerate(current_col):
             if current_time_name > 0:
                 data[current_mouse][-1] = current_col[current_mouse]
                 neg_data[current_mouse][-1] = neg_current_col[current_mouse]
@@ -174,25 +306,39 @@ def data_extraction(
     return data, neg_data
 
 
-def population_means(populations, normalised=False):
+def combine_naive_data(data_list):
 
+    combined_data = []
+
+    for current_row, _ in enumerate(data_list[0]):
+        row_values = []
+        for current_col, _ in enumerate(data_list):
+            row_values.append(data_list[current_col][current_row][0])
+        combined_data.append(deepcopy(row_values))
+
+    return combined_data
+
+
+def population_means(populations, normalised=False, ignore=None):
+
+    if ignore is None:
+        ignore = []
     means = []
+    actual_mice_list = []
+    empty_row = (-1, 0, 0, 0, 0, 0, 0)
     rows = len(populations)
     cols = len(populations[0])
+    actual_mice = 0
 
     for current_col in range(cols):
 
         actual_mice = rows
         for current_row in range(rows):
-            if populations[current_row][current_col] == (
-                -1,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-            ) or populations[current_row][current_col] == (-1,):
+            if (
+                populations[current_row][current_col] == empty_row
+                or populations[current_row][current_col] == (-1,)
+                or current_row in ignore
+            ):
                 actual_mice -= 1
             if normalised and int(populations[current_row][current_col][0]) != 1:
                 actual_mice -= 1
@@ -202,9 +348,11 @@ def population_means(populations, normalised=False):
             continue
 
         current_mean = []
-        for element in range(len(populations[0][current_col])):
+        for element, _ in enumerate(populations[0][current_col]):
             value = 0
             for current_row in range(rows):
+                if current_row in ignore:
+                    continue
                 if not normalised and (
                     populations[current_row][current_col] != (-1, 0, 0, 0, 0, 0, 0)
                     or populations[current_row][current_col] != (-1,)
@@ -214,7 +362,16 @@ def population_means(populations, normalised=False):
                     value += populations[current_row][current_col][element]
             current_mean.append(round(value / actual_mice, 2))
         means.append(tuple(current_mean))
-    return means
+        actual_mice_list.append(actual_mice)
+
+    if ignore == [] or (
+        all(num_mice == actual_mice_list[0] for num_mice in actual_mice_list)
+        and ignore is not None
+    ):
+        return means, actual_mice
+    else:
+        print("Incomplete dataset, try using a different restriction.")
+        return [], -1
 
 
 def venn_plots(
@@ -227,28 +384,36 @@ def venn_plots(
     normalised=False,
     extension=None,
     show=False,
+    ignore=None,
 ):
 
     max_mice = len(populations)
-    means = population_means(populations, normalised=normalised)
+    means, actual_mice = population_means(
+        populations, normalised=normalised, ignore=ignore
+    )
+
+    if ignore is None:
+        ignore = []
+        actual_mice = max_mice
 
     if title is not None:
         fig = plt.figure(
             constrained_layout=True,
-            figsize=(16 * num_timepoints, (16 * (max_mice + 1)) + 4),
+            figsize=(16 * num_timepoints, (16 * (actual_mice + 1)) + 4),
         )
         fig.suptitle("\n" + title + "\n", color="k", fontsize=90)
     else:
         fig = plt.figure(
-            constrained_layout=True, figsize=(16 * num_timepoints, 16 * (max_mice + 1))
+            constrained_layout=True,
+            figsize=(16 * num_timepoints, 16 * (actual_mice + 1)),
         )
         fig.suptitle("-", color="w", fontsize=60)
     col_figs = fig.subfigures(1, num_timepoints, wspace=0)
     row_figs = []
-    for current_col in range(len(col_figs)):
+    for current_col, _ in enumerate(col_figs):
         col_figs[current_col].suptitle(experiments[current_col], fontsize=80)
-        row_figs.append(col_figs[current_col].subfigures(max_mice + 1, 1, hspace=0))
-    fig_list = np.empty((max_mice + 1, num_timepoints), dtype=object)
+        row_figs.append(col_figs[current_col].subfigures(actual_mice + 1, 1, hspace=0))
+    fig_list = np.empty((actual_mice + 1, num_timepoints), dtype=object)
     colours = [
         "#F7F4B6",
         "#A6DCF8",
@@ -261,16 +426,23 @@ def venn_plots(
     patches = ["100", "010", "001", "111", "110", "101", "011"]
 
     for col in range(num_timepoints):
+        num_ignored = 0
         for row in range(max_mice + 1):
-            fig_list[row][col] = row_figs[col][row].subplots(1)
+            if row in ignore:
+                num_ignored += 1
+                continue
+
+            fig_list[row - num_ignored][col] = row_figs[col][
+                row - num_ignored
+            ].subplots(1)
 
             if row < max_mice and (
                 populations[row][col] == (-1, 0, 0, 0, 0, 0, 0)
                 or populations[row][col] == (0, 0, 0, 0, 0, 0, 0)
             ):
-                fig_list[row][col].axis("off")
+                fig_list[row - num_ignored][col].axis("off")
                 if populations[row][col] == (0, 0, 0, 0, 0, 0, 0):
-                    fig_list[row][col].set_title(
+                    fig_list[row - num_ignored][col].set_title(
                         f"Mouse {row + 1}", fontsize=65, color="grey"
                     )
                 continue
@@ -279,18 +451,22 @@ def venn_plots(
                 current = venn3(
                     subsets=populations[row][col],
                     set_labels=tetramers,
-                    ax=fig_list[row][col],
+                    ax=fig_list[row - num_ignored][col],
                 )
-                fig_list[row][col].set_title(
+                fig_list[row - num_ignored][col].set_title(
                     f"Mouse {row + 1}", fontsize=65, color="grey"
                 )
             elif means[col] != (-1, 0, 0, 0, 0, 0, 0):
                 current = venn3(
-                    subsets=means[col], set_labels=tetramers, ax=fig_list[row][col]
+                    subsets=means[col],
+                    set_labels=tetramers,
+                    ax=fig_list[row - num_ignored][col],
                 )
-                fig_list[row][col].set_title("Mean", fontsize=65, color="grey")
+                fig_list[row - num_ignored][col].set_title(
+                    "Mean", fontsize=65, color="grey"
+                )
             else:
-                fig_list[row][col].axis("off")
+                fig_list[row - num_ignored][col].axis("off")
 
             for text in current.set_labels:
                 text.set_fontsize(60)
@@ -326,21 +502,21 @@ def slope_plots(
 ):
 
     height = 14
-    suptitle_size = 80
+    sup_title_size = 80
     title_size = 70
     label_size = 60
     tick_size = 50
     decimals = 2
 
     fig = plt.figure(constrained_layout=True, figsize=(8 * height, 3 * height))
-    fig.suptitle("\n" + title + "\n", color="k", fontsize=suptitle_size)
+    fig.suptitle("\n" + title + "\n", color="k", fontsize=sup_title_size)
 
     max_y = max([max(values) for values in means]) * 2
 
     col_figs = fig.subfigures(3, 8, wspace=0.05, hspace=0.05)
     fig_list = np.empty((3, 8), dtype=object)
 
-    for current_row in range(len(col_figs)):
+    for current_row, _ in enumerate(col_figs):
         for current_col in range(7):
             if current_row == 0:
                 col_figs[current_row][current_col].suptitle(
@@ -429,7 +605,7 @@ def slope_plots(
                     y=0, color="teal", linestyle="-"
                 )
 
-    for current_row in range(len(col_figs)):
+    for current_row, _ in enumerate(col_figs):
         if current_row == 0:
             col_figs[current_row][7].suptitle(patch_names[7], fontsize=title_size)
         fig_list[current_row][7] = col_figs[current_row][7].subplots(1)
@@ -496,13 +672,13 @@ def slope_plots(
         plt.close("all")
 
 
-def old_dataframe(data, priming, time, organ, cd45, columns, patches, timepoints):
+def _old_dataframe(data, priming, time, organ, cd45, columns, patches, timepoints):
 
     organised_data = []
 
-    for current_infection in range(len(data)):
-        for current_row in range(len(data[current_infection])):
-            for current_col in range(len(data[current_infection][current_row])):
+    for current_infection, _ in enumerate(data):
+        for current_row, _ in enumerate(data[current_infection]):
+            for current_col, _ in enumerate(data[current_infection][current_row]):
                 new_item = [
                     organ[current_infection],
                     cd45[current_infection],
@@ -520,14 +696,14 @@ def old_dataframe(data, priming, time, organ, cd45, columns, patches, timepoints
 
 def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoints):
 
-    positive_data = [population_means(data[i]) for i in range(3)]
+    positive_data = [population_means(data[i])[0] for i in range(3)]
 
     organised_data = []
 
-    for current_infection in range(len(positive_data)):
-        for current_row in range(len(positive_data[current_infection])):
-            for current_col in range(
-                len(positive_data[current_infection][current_row])
+    for current_infection, _ in enumerate(positive_data):
+        for current_row, _ in enumerate(positive_data[current_infection]):
+            for current_col, _ in enumerate(
+                positive_data[current_infection][current_row]
             ):
                 new_item = [
                     organ[current_infection],
@@ -543,13 +719,13 @@ def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoint
 
     initial_dataframe = pd.DataFrame(organised_data, columns=columns)
 
-    total_data = [population_means(data[i + 3]) for i in range(3)]
+    total_data = [population_means(data[i + 3])[0] for i in range(3)]
 
     organised_data = []
 
     for current_infection in range(3):
-        for current_row in range(len(total_data[current_infection])):
-            # for current_col in range(len(data[current_infection][current_row])):
+        for current_row, _ in enumerate(total_data[current_infection]):
+            # for current_col, _ in enumerate(data[current_infection][current_row]):
             new_item = [
                 organ[current_infection],
                 cd45[current_infection],
@@ -570,6 +746,25 @@ def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoint
     total_dataframe = pd.DataFrame(organised_data, columns=columns)
 
     return initial_dataframe.append(total_dataframe, ignore_index=True)
+
+
+def stats_dataframe(data, columns):
+
+    non_zero_positions = {"WT": (0, 2, 4, 6), "T8A": (1, 2, 5, 6), "N3A": (3, 4, 5, 6)}
+    column_indexes = {0: "WT", 1: "T8A", 2: "N3A"}
+
+    organised_data = []
+
+    for current_mouse, current_data in enumerate(data):
+        organised_data.append([])
+        for column_index, column_data in enumerate(current_data):
+            for index, cell_numbers in enumerate(column_data):
+                if index in non_zero_positions[column_indexes[column_index]]:
+                    organised_data[current_mouse].append(cell_numbers)
+
+    organised_dataframe = pd.DataFrame(organised_data, columns=columns)
+
+    return organised_dataframe
 
 
 def separate_data(data, primary, challenge, tetramer):
