@@ -2,7 +2,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,pycharm,python,jupyternotebooks
 
 Figures-o.ipynb
-Naive Data Analysis 3_8_22.xlsx
+WT-analysis-Primary.ipynb
 
 figures/**
 .idea
