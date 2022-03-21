@@ -6,14 +6,120 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import scipy
 from matplotlib_venn import venn3, venn3_circles
 from plotly.subplots import make_subplots
+from scipy import stats
 
 plt.rcParams.update({"text.usetex": True})
 plt.rcParams["text.latex.preamble"] = r"\usepackage{graphicx}"
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["mathtext.fontset"] = "dejavuserif"
+
+
+class Mouse:
+    """Class to represent the cell populations (tetramer) from a mouse"""
+
+    def __init__(
+        self,
+        wt=-1,
+        t8a=0,
+        n3a=0,
+        wt_t8a=0,
+        wt_n3a=0,
+        t8a_n3a=0,
+        triple_positive=0,
+        triple_negative=0,
+    ):
+        self.wt = wt
+        self.t8a = t8a
+        self.n3a = n3a
+        self.wt_t8a = wt_t8a
+        self.wt_n3a = wt_n3a
+        self.t8a_n3a = t8a_n3a
+        self.triple_positive = triple_positive
+        self.triple_negative = triple_negative
+
+    def __round__(self, n=None):
+        return tuple([round(value, n) for value in self.venn()])
+
+    def __repr__(self):
+        return f"{self.venn()} ({self.triple_negative})"
+
+    def venn(self):
+        return tuple(
+            [
+                self.wt,
+                self.t8a,
+                self.wt_t8a,
+                self.n3a,
+                self.wt_n3a,
+                self.t8a_n3a,
+                self.triple_positive,
+            ]
+        )
+
+    def all(self):
+        return tuple(
+            [
+                self.wt,
+                self.t8a,
+                self.wt_t8a,
+                self.n3a,
+                self.wt_n3a,
+                self.t8a_n3a,
+                self.triple_positive,
+                self.triple_negative,
+            ]
+        )
+
+    def total_cells(self):
+        return sum(self.all())
+
+
+class Timepoint:
+    """Class to represent a timepoint consisting of objects of the `Mouse` class"""
+
+    def __init__(self):
+        self._mice = []
+        self._num_mice = 0
+
+    def __round__(self, n=None):
+        return [round(mouse, n) for mouse in self._mice]
+
+    def __str__(self):
+        return f"Timepoint with {self._num_mice} mice"
+
+    def num_mice(self):
+        return self._num_mice
+
+    def add_mouse(self, mouse):
+        self._mice.append(mouse)
+        self._num_mice += 1
+
+    def add_empty_mice(self, number):
+        for _ in range(number):
+            self._mice.append(Mouse())
+
+
+class Experiment:
+    """Class to represent and experiment consisting of objects of the `Timepoint` class"""
+
+    def __init__(self):
+        self._timepoints = []
+        self._num_timepoints = 0
+
+    def __round__(self, n=None):
+        return [round(timepoint, n) for timepoint in self._timepoints]
+
+    def __str__(self):
+        return f"Experiment with {self._num_timepoints} timepoints"
+
+    def num_timepoints(self):
+        return self._num_timepoints
+
+    def add_timepoint(self, timepoint):
+        self._timepoints.append(timepoint)
+        self._num_timepoints += 1
 
 
 def header_clipping(experiment, cd45="+", filename=None, check=False):
@@ -228,7 +334,7 @@ def _column_index(filename, headers, data_type=None):
 
             indices = [
                 row.index(headers[0]),  # Tissue
-                row.index(headers[1]),  # time_name
+                row.index(headers[1]),  # column_name
                 row.index(headers[2]),  # Single
                 row.index(headers[3]),  # First Double
                 row.index(headers[4]),  # Second Double
@@ -299,11 +405,17 @@ def data_extraction(
         for current_mouse, _ in enumerate(current_col):
             if current_time_name > 0:
                 data[current_mouse][-1] = current_col[current_mouse]
-                neg_data[current_mouse][-1] = neg_current_col[current_mouse]
+                if neg_current_col is not None:
+                    neg_data[current_mouse][-1] = neg_current_col[current_mouse]
             else:
                 data[current_mouse].append(current_col[current_mouse])
-                neg_data[current_mouse].append(neg_current_col[current_mouse])
-    return data, neg_data
+                if neg_current_col is not None:
+                    neg_data[current_mouse].append(neg_current_col[current_mouse])
+
+    if not neg_data[0]:
+        return data, None
+    else:
+        return data, neg_data
 
 
 def combine_naive_data(data_list):
@@ -319,10 +431,14 @@ def combine_naive_data(data_list):
     return combined_data
 
 
-def population_means(populations, normalised=False, ignore=None):
+def population_means(populations, normalised=False, ignore=None, decimals=None):
 
     if ignore is None:
         ignore = []
+
+    if decimals is None:
+        decimals = 2
+
     means = []
     actual_mice_list = []
     empty_row = (-1, 0, 0, 0, 0, 0, 0)
@@ -360,7 +476,7 @@ def population_means(populations, normalised=False, ignore=None):
                     value += populations[current_row][current_col][element]
                 if normalised and int(populations[current_row][current_col][0]) == 1:
                     value += populations[current_row][current_col][element]
-            current_mean.append(round(value / actual_mice, 2))
+            current_mean.append(round(value / actual_mice, decimals))
         means.append(tuple(current_mean))
         actual_mice_list.append(actual_mice)
 
@@ -374,6 +490,24 @@ def population_means(populations, normalised=False, ignore=None):
         return [], -1
 
 
+def _round_populations(populations, decimals=None):
+
+    if decimals is None:
+        decimals = 2
+
+    rounded_data = []
+
+    for mouse, mouse_data in enumerate(populations):
+        rounded_mouse = []
+        for column in mouse_data:
+            rounded_mouse.append(
+                tuple([round(current_value, decimals) for current_value in column])
+            )
+        rounded_data.append(deepcopy(rounded_mouse))
+
+    return rounded_data
+
+
 def venn_plots(
     num_timepoints,
     populations,
@@ -385,12 +519,16 @@ def venn_plots(
     extension=None,
     show=False,
     ignore=None,
+    decimals=None,
 ):
 
     max_mice = len(populations)
     means, actual_mice = population_means(
-        populations, normalised=normalised, ignore=ignore
+        populations, normalised=normalised, ignore=ignore, decimals=decimals
     )
+
+    if isinstance(populations[0][0][0], float):
+        populations = _round_populations(populations, decimals=decimals)
 
     if ignore is None:
         ignore = []
@@ -715,7 +853,7 @@ def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoint
                     timepoints[current_row],
                 ]
 
-                organised_data.append(new_item[:])
+                organised_data.append(deepcopy(new_item))
 
     initial_dataframe = pd.DataFrame(organised_data, columns=columns)
 
@@ -741,7 +879,7 @@ def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoint
             # else:
             #    new_item.append('Total')
 
-            organised_data.append(new_item[:])
+            organised_data.append(deepcopy(new_item))
 
     total_dataframe = pd.DataFrame(organised_data, columns=columns)
 
