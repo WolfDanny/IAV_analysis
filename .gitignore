@@ -10,6 +10,7 @@ figures/**
 *.pdf
 *.png
 *.zip
+*.xlsx
 
 ### JupyterNotebooks ###
 # gitignore template for Jupyter Notebooks
