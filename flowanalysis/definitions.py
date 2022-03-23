@@ -1,4 +1,5 @@
 import csv
+import warnings
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
@@ -886,6 +887,32 @@ def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoint
     return initial_dataframe.append(total_dataframe, ignore_index=True)
 
 
+def stats_dataframe_challenge(data, columns):
+
+    challenge_timepoints = {2: "WT", 3: "T8A", 4: "N3A"}
+    organised_data = []
+
+    for current_mouse, current_data in enumerate(data):
+        for index, column_data in enumerate(current_data):
+
+            if index not in challenge_timepoints:
+                continue
+
+            current_values = [challenge_timepoints[index]]
+
+            for cell_numbers in column_data:
+                if cell_numbers == -1:
+                    break
+                else:
+                    current_values.append(cell_numbers)
+            else:
+                organised_data.append(deepcopy(current_values))
+
+    organised_dataframe = pd.DataFrame(organised_data, columns=columns)
+
+    return organised_dataframe
+
+
 def stats_dataframe(data, columns):
 
     non_zero_positions = {"WT": (0, 2, 4, 6), "T8A": (1, 2, 5, 6), "N3A": (3, 4, 5, 6)}
@@ -903,6 +930,35 @@ def stats_dataframe(data, columns):
     organised_dataframe = pd.DataFrame(organised_data, columns=columns)
 
     return organised_dataframe
+
+
+def pairs_stats(x, y, comparisons=1, corr_position=0, corr_total=1, **kwargs):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        try:
+            corr, pvalue = stats.pearsonr(x, y)
+            corr_size = 15 + (1 - pvalue) * 15
+
+            ast = ""
+            if pvalue <= 0.01 / comparisons:
+                ast = "\\ast\\ast"
+            elif pvalue <= 0.05 / comparisons:
+                ast = "\\ast"
+
+            corr_text = f"${corr:.3f}{ast}$"
+        except stats.PearsonRConstantInputWarning:
+            corr_size = 30
+            corr_text = "$\\textrm{--}$"
+
+    ax = plt.gca()
+    ax.set_axis_off()
+    ax.annotate(
+        corr_text,
+        xy=(0.5, (corr_total - corr_position) * (1 / (corr_total + 1))),
+        xycoords=ax.transAxes,
+        ha="center",
+        fontsize=corr_size,
+    )
 
 
 def separate_data(data, primary, challenge, tetramer):
