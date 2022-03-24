@@ -93,9 +93,13 @@ class Timepoint:
     def num_mice(self):
         return self._num_mice
 
-    def add_mouse(self, mouse):
+    def _add_mouse(self, mouse):
         self._mice.append(mouse)
         self._num_mice += 1
+
+    def add_mice(self, mice):
+        for current in mice:
+            self._add_mouse(current)
 
     def add_empty_mice(self, number):
         for _ in range(number):
@@ -118,9 +122,13 @@ class Experiment:
     def num_timepoints(self):
         return self._num_timepoints
 
-    def add_timepoint(self, timepoint):
+    def _add_timepoint(self, timepoint):
         self._timepoints.append(timepoint)
         self._num_timepoints += 1
+
+    def add_timepoints(self, timepoints):
+        for current in timepoints:
+            self._add_timepoint(current)
 
 
 def header_clipping(experiment, cd45="+", filename=None, check=False):
@@ -887,10 +895,12 @@ def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoint
     return initial_dataframe.append(total_dataframe, ignore_index=True)
 
 
-def stats_dataframe_challenge(data, columns):
+def stats_dataframe_challenge(full_data, columns):
 
     challenge_timepoints = {2: "WT", 3: "T8A", 4: "N3A"}
     organised_data = []
+
+    data, data_neg = full_data
 
     for current_mouse, current_data in enumerate(data):
         for index, column_data in enumerate(current_data):
@@ -898,7 +908,7 @@ def stats_dataframe_challenge(data, columns):
             if index not in challenge_timepoints:
                 continue
 
-            current_values = [challenge_timepoints[index]]
+            current_values = []
 
             for cell_numbers in column_data:
                 if cell_numbers == -1:
@@ -906,6 +916,10 @@ def stats_dataframe_challenge(data, columns):
                 else:
                     current_values.append(cell_numbers)
             else:
+                current_values.append(
+                    data_neg[current_mouse][index][0] - sum(current_values)
+                )
+                current_values.insert(0, challenge_timepoints[index])
                 organised_data.append(deepcopy(current_values))
 
     organised_dataframe = pd.DataFrame(organised_data, columns=columns)
