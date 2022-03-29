@@ -18,7 +18,7 @@ plt.rcParams["mathtext.fontset"] = "dejavuserif"
 
 
 class Mouse:
-    """Class to represent the cell populations (tetramer) from a mouse"""
+    """Class to represent the (tetramer) populations of cells from a mouse"""
 
     def __init__(
         self,
@@ -42,6 +42,12 @@ class Mouse:
 
     def __round__(self, n=None):
         return tuple([round(value, n) for value in self.venn()])
+
+    def __bool__(self):
+        if self.wt == -1:
+            return False
+        else:
+            return True
 
     def __repr__(self):
         return f"{self.venn()} ({self.triple_negative})"
@@ -83,15 +89,22 @@ class Timepoint:
     def __init__(self):
         self._mice = []
         self._num_mice = 0
+        self._num_empty_mice = 0
 
     def __round__(self, n=None):
         return [round(mouse, n) for mouse in self._mice]
 
-    def __str__(self):
+    def __len__(self):
+        return self._num_mice + self._num_empty_mice
+
+    def __repr__(self):
         return f"Timepoint with {self._num_mice} mice"
 
     def num_mice(self):
         return self._num_mice
+
+    def mouse_summary(self):
+        return self._num_mice, self._num_empty_mice
 
     def _add_mouse(self, mouse):
         self._mice.append(mouse)
@@ -104,31 +117,38 @@ class Timepoint:
     def add_empty_mice(self, number):
         for _ in range(number):
             self._mice.append(Mouse())
+        self._num_empty_mice += number
 
 
 class Experiment:
     """Class to represent and experiment consisting of objects of the `Timepoint` class"""
 
     def __init__(self):
-        self._timepoints = []
+        self._timepoints = {}
         self._num_timepoints = 0
 
     def __round__(self, n=None):
         return [round(timepoint, n) for timepoint in self._timepoints]
 
-    def __str__(self):
-        return f"Experiment with {self._num_timepoints} timepoints"
+    def __len__(self):
+        return self._num_timepoints
+
+    def __repr__(self):
+        return f"Experiment with {self._num_timepoints} timepoints ({self.timepoint_names()}), and {[timepoint.mouse_summary() for timepoint in self._timepoints]} mice"
 
     def num_timepoints(self):
         return self._num_timepoints
 
-    def _add_timepoint(self, timepoint):
-        self._timepoints.append(timepoint)
+    def _add_timepoint(self, timepoint, timepoint_name):
+        self._timepoints[timepoint_name] = timepoint
         self._num_timepoints += 1
 
-    def add_timepoints(self, timepoints):
-        for current in timepoints:
-            self._add_timepoint(current)
+    def add_timepoints(self, timepoints, timepoint_names):
+        for point, name in zip(timepoints, timepoint_names):
+            self._add_timepoint(point, name)
+
+    def timepoint_names(self):
+        return list(self._timepoints.keys())
 
 
 def header_clipping(experiment, cd45="+", filename=None, check=False):
@@ -955,9 +975,9 @@ def pairs_stats(x, y, comparisons=1, corr_position=0, corr_total=1, **kwargs):
 
             ast = ""
             if pvalue <= 0.01 / comparisons:
-                ast = "\\ast\\ast"
+                ast = "{\\ast}{\\ast}"
             elif pvalue <= 0.05 / comparisons:
-                ast = "\\ast"
+                ast = "{\\ast}"
 
             corr_text = f"${corr:.3f}{ast}$"
         except stats.PearsonRConstantInputWarning:
