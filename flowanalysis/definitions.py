@@ -103,6 +103,9 @@ class Timepoint:
     def num_mice(self):
         return self._num_mice
 
+    def total_mice(self):
+        return sum(self.mouse_summary())
+
     def mouse_summary(self):
         return self._num_mice, self._num_empty_mice
 
@@ -114,10 +117,10 @@ class Timepoint:
         for current in mice:
             self._add_mouse(current)
 
-    def add_empty_mice(self, number):
-        for _ in range(number):
+    def fill_empty_mice(self, number):
+        for _ in range(number - self._num_mice):
             self._mice.append(Mouse())
-        self._num_empty_mice += number
+        self._num_empty_mice += number - self._num_mice
 
 
 class Experiment:
@@ -134,7 +137,7 @@ class Experiment:
         return self._num_timepoints
 
     def __repr__(self):
-        return f"Experiment with {self._num_timepoints} timepoints ({self.timepoint_names()}), and {[timepoint.mouse_summary() for timepoint in self._timepoints]} mice"
+        return f"Experiment with {self._num_timepoints} timepoints {self.timepoint_names()}, with {[timepoint.mouse_summary() for timepoint in self.timepoints()]} mice each"
 
     def num_timepoints(self):
         return self._num_timepoints
@@ -149,6 +152,20 @@ class Experiment:
 
     def timepoint_names(self):
         return list(self._timepoints.keys())
+
+    def timepoints(self):
+        return list(self._timepoints.values())
+
+    def mouse_numbers(self):
+        return [timepoint.total_mice() for timepoint in self.timepoints()]
+
+    def normalise_length(self):
+        max_mice = max(self.mouse_numbers())
+
+        for name, timepoint in self._timepoints.items():
+            if timepoint.num_mice() != max_mice:
+                timepoint.fill_empty_mice(max_mice)
+                self._timepoints[name] = timepoint
 
 
 def header_clipping(experiment, cd45="+", filename=None, check=False):
@@ -214,7 +231,7 @@ def _timepoint_extraction_challenge(
 
     # RETURN A THIRD LIST WITH NEGATIVE DATA
     data = []
-    total_data = []
+    neg_data = []
 
     with open(filename, "r") as file:
         csvfile = csv.reader(file)
@@ -250,8 +267,8 @@ def _timepoint_extraction_challenge(
                             f"Sample for {time_names[time_name_index]} could not be normalised."
                         )
                 data.append(tuple(values))
-                total_data.append(tuple(neg_values))
-    return data, total_data
+                neg_data.append(tuple(neg_values))
+    return data, neg_data
 
 
 def _timepoint_extraction_naive(
@@ -936,9 +953,7 @@ def stats_dataframe_challenge(full_data, columns):
                 else:
                     current_values.append(cell_numbers)
             else:
-                current_values.append(
-                    data_neg[current_mouse][index][0] - sum(current_values)
-                )
+                current_values.append(data_neg[current_mouse][index][0])
                 current_values.insert(0, challenge_timepoints[index])
                 organised_data.append(deepcopy(current_values))
 
