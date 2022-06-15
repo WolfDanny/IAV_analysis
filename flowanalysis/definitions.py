@@ -229,7 +229,6 @@ def _timepoint_extraction_challenge(
     filename,
 ):
 
-    # RETURN A THIRD LIST WITH NEGATIVE DATA
     data = []
     neg_data = []
 
@@ -282,7 +281,6 @@ def _timepoint_extraction_naive(
     filename,
 ):
 
-    # RETURN A THIRD LIST WITH NEGATIVE DATA
     non_zero_positions = {"WT": (0, 2, 4, 6), "T8A": (1, 2, 5, 6), "N3A": (3, 4, 5, 6)}
     data = []
 
@@ -932,9 +930,30 @@ def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoint
     return initial_dataframe.append(total_dataframe, ignore_index=True)
 
 
-def stats_dataframe_challenge(full_data, columns):
+def stats_dataframe_infection(full_data, columns, complete=False):
+    """
+    Generates a data frame containing the data from `full_data` with column names given by `columns`.
 
-    challenge_timepoints = {2: "WT", 3: "T8A", 4: "N3A"}
+    Parameters
+    ----------
+    full_data : tuple
+        Tuple containing the list of positive stained cells, and the list of negative cells.
+    columns : list[str]
+        List of names of the columns of the data.
+    complete : bool
+        Consider only challenge timepoint data if false.
+
+    Returns
+    -------
+    pd.DataFrame
+        Data frame containing the organised extracted data.
+    """
+
+    if not complete:
+        challenge_timepoints = {2: "WT", 3: "T8A", 4: "N3A"}
+    else:
+        challenge_timepoints = {0: "Primary", 1: "Memory", 2: "WT", 3: "T8A", 4: "N3A"}
+
     organised_data = []
 
     data, data_neg = full_data
@@ -962,7 +981,19 @@ def stats_dataframe_challenge(full_data, columns):
     return organised_dataframe
 
 
-def stats_dataframe(data, columns):
+def stats_dataframe_naive(data, columns):
+    """
+
+    Parameters
+    ----------
+    data : tuple
+    columns : list[str]
+
+    Returns
+    -------
+    pd.DataFrame
+        Data frame containing the organised extracted data.
+    """
 
     non_zero_positions = {"WT": (0, 2, 4, 6), "T8A": (1, 2, 5, 6), "N3A": (3, 4, 5, 6)}
     column_indexes = {0: "WT", 1: "T8A", 2: "N3A"}

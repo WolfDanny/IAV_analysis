@@ -1,0 +1,119 @@
+---
+title: "R Notebook"
+output: html_document
+---
+```{r Loading absolute numbers}
+WT <- read.csv("WT.csv")
+T8A <- read.csv("T8A.csv")
+N3A <- read.csv("N3A.csv")
+```
+```{r Loading frequencies}
+WTf <- read.csv("WT-f.csv")
+T8Af <- read.csv("T8A-f.csv")
+N3Af <- read.csv("N3A-f.csv")
+```
+```{r WT priming absolute numbers}
+WTWT <- stack(WT[WT$Challenge == "WT",], select=-Challenge)
+aovWTWT <- aov(values ~ ind, WTWT)
+tukeyWTWT <- TukeyHSD(aovWTWT, ordered=TRUE, conf.level=0.95)
+# plot(tukeyWTWT , las=1 , col="green")
+
+WTT8A <- stack(WT[WT$Challenge == "T8A",], select=-Challenge)
+aovWTT8A <- aov(values ~ ind, WTT8A)
+tukeyWTT8A <- TukeyHSD(aovWTT8A, ordered=TRUE, conf.level=0.95)
+# plot(tukeyWTT8A , las=1 , col="green")
+
+WTN3A <- stack(WT[WT$Challenge == "N3A",], select=-Challenge)
+aovWTN3A <- aov(values ~ ind, WTN3A)
+tukeyWTN3A <- TukeyHSD(aovWTN3A, ordered=TRUE, conf.level=0.95)
+# plot(tukeyWTN3A , las=1 , col="green")
+```
+```{r WT priming frequencies}
+WTWTf <- stack(WTf[WTf$Challenge == "WT",], select=-Challenge)
+aovWTWTf <- aov(values ~ ind, WTWTf)
+tukeyWTWTf <- TukeyHSD(aovWTWTf, ordered=TRUE, conf.level=0.95)
+write.csv(as.data.frame(tukeyWTWTf[1]), "ANOVA/Tukey-WT-WT.csv")
+# plot(tukeyWTWTf , las=1 , col="green")
+
+WTT8Af <- stack(WTf[WTf$Challenge == "T8A",], select=-Challenge)
+aovWTT8Af <- aov(values ~ ind, WTT8Af)
+tukeyWTT8Af <- TukeyHSD(aovWTT8Af, ordered=TRUE, conf.level=0.95)
+write.csv(as.data.frame(tukeyWTT8Af[1]), "ANOVA/Tukey-WT-T8A.csv")
+# plot(tukeyWTT8Af , las=1 , col="green")
+
+WTN3Af <- stack(WTf[WTf$Challenge == "N3A",], select=-Challenge)
+aovWTN3Af <- aov(values ~ ind, WTN3Af)
+tukeyWTN3Af <- TukeyHSD(aovWTN3Af, ordered=TRUE, conf.level=0.95)
+write.csv(as.data.frame(tukeyWTN3Af[1]), "ANOVA/Tukey-WT-N3A.csv")
+# plot(tukeyWTN3Af , las=1 , col="green")
+```
+```{r T8A priming absolute numbers}
+T8AWT <- stack(T8A[T8A$Challenge == "WT",], select=-Challenge)
+aovT8AWT <- aov(values ~ ind, T8AWT)
+tukeyT8AWT <- TukeyHSD(aovT8AWT, ordered=TRUE, conf.level=0.95)
+# plot(tukeyT8AWT , las=1 , col="green")
+
+T8AT8A <- stack(T8A[T8A$Challenge == "T8A",], select=-Challenge)
+aovT8AT8A <- aov(values ~ ind, T8AT8A)
+tukeyT8AT8A <- TukeyHSD(aovT8AT8A, ordered=TRUE, conf.level=0.95)
+# plot(tukeyT8AT8A , las=1 , col="green")
+
+T8AN3A <- stack(T8A[T8A$Challenge == "N3A",], select=-Challenge)
+aovT8AN3A <- aov(values ~ ind, T8AN3A)
+tukeyT8AN3A <- TukeyHSD(aovT8AN3A, ordered=TRUE, conf.level=0.95)
+# plot(tukeyT8AN3A , las=1 , col="green")
+```
+```{r T8A priming frequencies}
+T8AWTf <- stack(T8Af[T8Af$Challenge == "WT",], select=-Challenge)
+aovT8AWTf <- aov(values ~ ind, T8AWTf)
+tukeyT8AWTf <- TukeyHSD(aovT8AWTf, ordered=TRUE, conf.level=0.95)
+write.csv(as.data.frame(tukeyT8AWTf[1]), "ANOVA/Tukey-T8A-WT.csv")
+# plot(tukeyT8AWTf , las=1 , col="green")
+
+T8AT8Af <- stack(T8Af[T8Af$Challenge == "T8A",], select=-Challenge)
+aovT8AT8Af <- aov(values ~ ind, T8AT8Af)
+tukeyT8AT8Af <- TukeyHSD(aovT8AT8Af, ordered=TRUE, conf.level=0.95)
+write.csv(as.data.frame(tukeyT8AT8Af[1]), "ANOVA/Tukey-T8A-T8A.csv")
+# plot(tukeyT8AT8Af , las=1 , col="green")
+
+T8AN3Af <- stack(T8Af[T8Af$Challenge == "N3A",], select=-Challenge)
+aovT8AN3Af <- aov(values ~ ind, T8AN3Af)
+tukeyT8AN3Af <- TukeyHSD(aovT8AN3Af, ordered=TRUE, conf.level=0.95)
+write.csv(as.data.frame(tukeyT8AN3Af[1]), "ANOVA/Tukey-T8A-N3A.csv")
+# plot(tukeyT8AN3Af , las=1 , col="green")
+```
+```{r N3A priming absolute numbers}
+N3AWT <- stack(N3A[N3A$Challenge == "WT",], select=-Challenge)
+aovN3AWT <- aov(values ~ ind, N3AWT)
+tukeyN3AWT <- TukeyHSD(aovN3AWT, ordered=TRUE, conf.level=0.95)
+# plot(tukeyN3AWT , las=1 , col="green")
+
+N3AT8A <- stack(N3A[N3A$Challenge == "T8A",], select=-Challenge)
+aovN3AT8A <- aov(values ~ ind, N3AT8A)
+tukeyN3AT8A <- TukeyHSD(aovN3AT8A, ordered=TRUE, conf.level=0.95)
+# plot(tukeyN3AT8A , las=1 , col="green")
+
+N3AN3A <- stack(N3A[N3A$Challenge == "N3A",], select=-Challenge)
+aovN3AN3A <- aov(values ~ ind, N3AN3A)
+tukeyN3AN3A <- TukeyHSD(aovN3AN3A, ordered=TRUE, conf.level=0.95)
+# plot(tukeyN3AN3A , las=1 , col="green")
+```
+```{r N3A priming frequencies}
+N3AWTf <- stack(N3Af[N3Af$Challenge == "WT",], select=-Challenge)
+aovN3AWTf <- aov(values ~ ind, N3AWTf)
+tukeyN3AWTf <- TukeyHSD(aovN3AWTf, ordered=TRUE, conf.level=0.95)
+write.csv(as.data.frame(tukeyN3AWTf[1]), "ANOVA/Tukey-N3A-WT.csv")
+# plot(tukeyN3AWTf , las=1 , col="green")
+
+N3AT8Af <- stack(N3Af[N3Af$Challenge == "T8A",], select=-Challenge)
+aovN3AT8Af <- aov(values ~ ind, N3AT8Af)
+tukeyN3AT8Af <- TukeyHSD(aovN3AT8Af, ordered=TRUE, conf.level=0.95)
+write.csv(as.data.frame(tukeyN3AT8Af[1]), "ANOVA/Tukey-N3A-T8A.csv")
+# plot(tukeyN3AT8Af , las=1 , col="green")
+
+N3AN3Af <- stack(N3Af[N3Af$Challenge == "N3A",], select=-Challenge)
+aovN3AN3Af <- aov(values ~ ind, N3AN3Af)
+tukeyN3AN3Af <- TukeyHSD(aovN3AN3Af, ordered=TRUE, conf.level=0.95)
+write.csv(as.data.frame(tukeyN3AN3Af[1]), "ANOVA/Tukey-N3A-N3A.csv")
+# plot(tukeyN3AN3Af , las=1 , col="green")
+```
