@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 infections = ["WT", "T8A", "N3A"]
+timepoints = ["Primary", "Memory"]
 populations = {
     "WT": 0,
     "T8A": 1,
@@ -113,9 +114,9 @@ with open("ANOVA/anova-tikz.tex", "w") as outfile:
     outfile.write("\\pgfmathsetmacro\\r{1.5}\n")
     outfile.write("\n\n")
 
-    for _, priming in enumerate(infections):
-        for _, challenge in enumerate(infections):
-            filename = f"ANOVA/Tukey-{priming}-{challenge}.csv"
+    for _, primary in enumerate(infections):
+        for _, timepoint in enumerate(timepoints):
+            filename = f"ANOVA/Tukey-{primary}-{timepoint[0]}.csv"
 
             try:
                 with open(filename) as file:
@@ -150,7 +151,8 @@ with open("ANOVA/anova-tikz.tex", "w") as outfile:
                             )
 
                 outfile.write("\n\n========================================\n")
-                outfile.write(f"{priming : ^20}{challenge : ^20}\n")
+                timepoint_name = " ".join([primary, timepoint])
+                outfile.write(f"{timepoint_name : ^40}\n")
                 outfile.write("========================================\n\n")
                 outfile.write("\\begin{tikzpicture}\n\n")
                 outfile.write(coordinate_loop(len(populations)))
@@ -160,7 +162,59 @@ with open("ANOVA/anova-tikz.tex", "w") as outfile:
                 outfile.write(node_loop(len(populations), numbered=True))
                 outfile.write("\\end{tikzpicture}\n\n")
 
-                print(f"File for {priming}-{challenge} found")
+                print(f"File for {primary} {timepoint} found")
             except FileNotFoundError:
-                print(f"File for {priming}-{challenge} NOT found")
+                print(f"File for {primary} {timepoint} NOT found")
+                pass
+
+    for _, primary in enumerate(infections):
+        for _, challenge in enumerate(infections):
+            filename = f"ANOVA/Tukey-{primary}-{challenge}.csv"
+
+            try:
+                with open(filename) as file:
+                    current_datafame = pd.read_csv(file)
+
+                # Reading and standardising names
+                current_names = [
+                    name.split("-") for name in current_datafame.iloc[:, 0]
+                ]
+                for row, current_pair in enumerate(current_names):
+                    for col, current_population in enumerate(current_pair):
+                        current_names[row][col] = current_population.replace(".", "+")
+
+                # Reading data
+                current_data = current_datafame.iloc[:, 1:].to_numpy()
+
+                # Identifying significant differences
+                significant_differences = []
+                triple_negative_differences = []
+                for index, values in enumerate(current_data):
+                    if values[-1] < 0.05:
+                        current_nodes = [
+                            populations[current_names[index][i]] for i in range(2)
+                        ]
+                        if 7 in current_nodes:
+                            triple_negative_differences.append(
+                                f"{current_nodes[0]}/{current_nodes[1]}"
+                            )
+                        else:
+                            significant_differences.append(
+                                f"{current_nodes[0]}/{current_nodes[1]}"
+                            )
+
+                outfile.write("\n\n========================================\n")
+                outfile.write(f"{primary : ^20}{challenge : ^20}\n")
+                outfile.write("========================================\n\n")
+                outfile.write("\\begin{tikzpicture}\n\n")
+                outfile.write(coordinate_loop(len(populations)))
+                outfile.write(edge_loop(triple_negative_differences, dashed=True))
+                if significant_differences:
+                    outfile.write(edge_loop(significant_differences))
+                outfile.write(node_loop(len(populations), numbered=True))
+                outfile.write("\\end{tikzpicture}\n\n")
+
+                print(f"File for {primary}-{challenge} found")
+            except FileNotFoundError:
+                print(f"File for {primary}-{challenge} NOT found")
                 pass
