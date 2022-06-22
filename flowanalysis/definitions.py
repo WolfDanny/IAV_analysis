@@ -41,7 +41,7 @@ class Mouse:
         self.triple_negative = triple_negative
 
     def __round__(self, n=None):
-        return tuple([round(value, n) for value in self.venn()])
+        return tuple([round(value, n) for value in self.all_cells()])
 
     def __bool__(self):
         if self.wt == -1:
@@ -50,9 +50,9 @@ class Mouse:
             return True
 
     def __repr__(self):
-        return f"{self.venn()} ({self.triple_negative})"
+        return f"{self.venn_plot_cells()} ({self.triple_negative})"
 
-    def venn(self):
+    def venn_plot_cells(self):
         return tuple(
             [
                 self.wt,
@@ -65,7 +65,7 @@ class Mouse:
             ]
         )
 
-    def all(self):
+    def all_cells(self):
         return tuple(
             [
                 self.wt,
@@ -80,7 +80,13 @@ class Mouse:
         )
 
     def total_cells(self):
-        return sum(self.all())
+        return sum(self.all_cells())
+
+    def frequency_venn(self):
+        return tuple([value / self.total_cells() for value in self.venn_plot_cells()])
+
+    def frequency_all(self):
+        return tuple([value / self.total_cells() for value in self.all_cells()])
 
 
 class Timepoint:
@@ -122,6 +128,29 @@ class Timepoint:
             self._mice.append(Mouse())
         self._num_empty_mice += number - self._num_mice
 
+    def timepoint_mean(self, venn=False):
+        population_names = [
+            "wt",
+            "t8a",
+            "wt_t8a",
+            "n3a",
+            "wt_n3a",
+            "t8a_n3a",
+            "triple_positive",
+            "triple_negative",
+        ]
+        if venn:
+            population_names.pop()
+
+        mean_values = []
+        for population in population_names:
+            mean_values.append(
+                sum([getattr(mouse, population) for mouse in self._mice])
+                / self._num_mice
+            )
+
+        return tuple(mean_values)
+
 
 class Experiment:
     """Class to represent and experiment consisting of objects of the `Timepoint` class"""
@@ -159,7 +188,9 @@ class Experiment:
     def mouse_numbers(self):
         return [timepoint.total_mice() for timepoint in self.timepoints()]
 
-    def normalise_length(self):
+    def normalise_length(
+        self,
+    ):  # Check if the change is on a copy or the original object
         max_mice = max(self.mouse_numbers())
 
         for name, timepoint in self._timepoints.items():
@@ -219,18 +250,18 @@ def time_name_list(experiment, headers, cd45="+", filename=None):
     return names
 
 
-def _timepoint_extraction_challenge(
+def _timepoint_extraction_challenge(  # RETURNS TIMEPOINT
     organ,
     indices,
     time_names,
     time_name_index,
-    normalise,
-    double_count,
     filename,
 ):
 
-    data = []
-    neg_data = []
+    current_timepoint = Timepoint()
+    timepoint_mice = []
+    # data = []
+    # neg_data = []
 
     with open(filename, "r") as file:
         csvfile = csv.reader(file)
@@ -243,34 +274,17 @@ def _timepoint_extraction_challenge(
                 == time_names[time_name_index].rstrip().lower()
             ):
                 values = [int(float(row[index])) for index in indices[2:9]]
-                neg_values = [int(float(row[indices[9]])) - sum(values)]
-                if double_count:
-                    values[2] -= values[6]
-                    values[4] -= values[6]
-                    values[5] -= values[6]
-                    values[0] -= values[2] + values[4] + values[6]
-                    values[1] -= values[2] + values[5] + values[6]
-                    values[3] -= values[4] + values[5] + values[6]
-                if normalise:
-                    if sum(values) + sum(neg_values) > 0:
-                        values = [
-                            current_value / (sum(values) + sum(neg_values))
-                            for current_value in values
-                        ]
-                        neg_values = [
-                            current_value / (sum(values) + sum(neg_values))
-                            for current_value in neg_values
-                        ]
-                    else:
-                        print(
-                            f"Sample for {time_names[time_name_index]} could not be normalised."
-                        )
-                data.append(tuple(values))
-                neg_data.append(tuple(neg_values))
-    return data, neg_data
+                values.append(int(float(row[indices[9]])) - sum(values))
+                timepoint_mice.append(Mouse(*values))
+
+    current_timepoint.add_mice(timepoint_mice)
+    return current_timepoint
+    #             data.append(tuple(values))
+    #             neg_data.append(tuple(neg_values))
+    # return data, neg_data
 
 
-def _timepoint_extraction_naive(
+def _timepoint_extraction_naive(  # RETURNS TIMEPOINT
     organ,
     indices,
     time_names,
@@ -282,7 +296,9 @@ def _timepoint_extraction_naive(
 ):
 
     non_zero_positions = {"WT": (0, 2, 4, 6), "T8A": (1, 2, 5, 6), "N3A": (3, 4, 5, 6)}
-    data = []
+    # data = []
+    current_timepoint = Timepoint()
+    timepoint_mice = []
 
     with open(filename, "r") as file:
         csvfile = csv.reader(file)
@@ -313,8 +329,11 @@ def _timepoint_extraction_naive(
                         print(
                             f"Sample for {time_names[time_name_index]} could not be normalised."
                         )
-                data.append(tuple(values))
-    return data, None
+                timepoint_mice.append(Mouse(*values))
+    current_timepoint.add_mice(timepoint_mice)
+    return current_timepoint
+    #             data.append(tuple(values))
+    # return data, None
 
 
 def timepoint_extraction(
@@ -389,7 +408,7 @@ def _column_index(filename, headers, data_type=None):
     return indices
 
 
-def data_extraction(
+def data_extraction(  # RETURNS EXPERIMENT
     experiment,
     organ,
     headers,
@@ -411,6 +430,9 @@ def data_extraction(
     else:
         filename = f"{experiment}-{filename}{cd45}.csv"
 
+    current_experiment = Experiment()
+    experiment_timepoints = []
+
     data = []
     neg_data = []
 
@@ -422,7 +444,8 @@ def data_extraction(
     indices = _column_index(filename, headers, data_type=data_type)
 
     for current_time_name in range(num_timepoints):
-        current_col, neg_current_col = timepoint_extraction(
+        # current_col, neg_current_col = timepoint_extraction(
+        current_timepoint = timepoint_extraction(
             organ,
             indices,
             time_names,
@@ -433,33 +456,40 @@ def data_extraction(
             column,
             filename,
         )
-        for _ in range(len(current_col) - len(data)):
-            previous = []
-            neg_previous = []
-            for _ in range(current_time_name):
-                previous.append((-1, 0, 0, 0, 0, 0, 0))
-                neg_previous.append((-1,))
-            data.append(previous)
-            neg_data.append(neg_previous)
-        if current_time_name > 0:
-            for row in data:
-                row.append((-1, 0, 0, 0, 0, 0, 0))
-            for row in neg_data:
-                row.append((-1,))
-        for current_mouse, _ in enumerate(current_col):
-            if current_time_name > 0:
-                data[current_mouse][-1] = current_col[current_mouse]
-                if neg_current_col is not None:
-                    neg_data[current_mouse][-1] = neg_current_col[current_mouse]
-            else:
-                data[current_mouse].append(current_col[current_mouse])
-                if neg_current_col is not None:
-                    neg_data[current_mouse].append(neg_current_col[current_mouse])
+        experiment_timepoints.append(current_timepoint)
 
-    if not neg_data[0]:
-        return data, None
-    else:
-        return data, neg_data
+    current_experiment.add_timepoints(
+        experiment_timepoints, time_names[:num_timepoints]
+    )
+    return current_experiment
+
+    #     for _ in range(len(current_col) - len(data)):
+    #         previous = []
+    #         neg_previous = []
+    #         for _ in range(current_time_name):
+    #             previous.append((-1, 0, 0, 0, 0, 0, 0))
+    #             neg_previous.append((-1,))
+    #         data.append(previous)
+    #         neg_data.append(neg_previous)
+    #     if current_time_name > 0:
+    #         for row in data:
+    #             row.append((-1, 0, 0, 0, 0, 0, 0))
+    #         for row in neg_data:
+    #             row.append((-1,))
+    #     for current_mouse, _ in enumerate(current_col):
+    #         if current_time_name > 0:
+    #             data[current_mouse][-1] = current_col[current_mouse]
+    #             if neg_current_col is not None:
+    #                 neg_data[current_mouse][-1] = neg_current_col[current_mouse]
+    #         else:
+    #             data[current_mouse].append(current_col[current_mouse])
+    #             if neg_current_col is not None:
+    #                 neg_data[current_mouse].append(neg_current_col[current_mouse])
+    #
+    # if not neg_data[0]:
+    #     return data, None
+    # else:
+    #     return data, neg_data
 
 
 def combine_naive_data(data_list):
@@ -1016,7 +1046,8 @@ def pairs_stats(x, y, comparisons=1, corr_position=0, corr_total=1, **kwargs):
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         try:
-            corr, pvalue = stats.pearsonr(x, y)
+            # corr, pvalue = stats.pearsonr(x, y)
+            corr, pvalue = stats.spearmanr(x, y)
             corr_size = 15 + (1 - pvalue) * 15
 
             ast = ""
@@ -1027,6 +1058,9 @@ def pairs_stats(x, y, comparisons=1, corr_position=0, corr_total=1, **kwargs):
 
             corr_text = f"${corr:.3f}{ast}$"
         except stats.PearsonRConstantInputWarning:
+            corr_size = 30
+            corr_text = "$\\textrm{--}$"
+        except stats.SpearmanRConstantInputWarning:
             corr_size = 30
             corr_text = "$\\textrm{--}$"
 
