@@ -41,7 +41,7 @@ class Mouse:
         self.triple_negative = triple_negative
 
     def __round__(self, n=None):
-        return tuple([round(value, n) for value in self.all_cells()])
+        return tuple([round(value, n) for value in self.cell_summary(complete=True)])
 
     def __bool__(self):
         if self.wt == -1:
@@ -50,43 +50,44 @@ class Mouse:
             return True
 
     def __repr__(self):
-        return f"{self.venn_plot_cells()} ({self.triple_negative})"
+        return f"{self.cell_summary()} ({self.triple_negative})"
 
-    def venn_plot_cells(self):
-        return tuple(
-            [
-                self.wt,
-                self.t8a,
-                self.wt_t8a,
-                self.n3a,
-                self.wt_n3a,
-                self.t8a_n3a,
-                self.triple_positive,
-            ]
-        )
+    def cell_summary(self, venn=True, complete=False, ints=False):
+        populations = [
+            self.wt,
+            self.t8a,
+            self.n3a,
+            self.wt_t8a,
+            self.wt_n3a,
+            self.t8a_n3a,
+            self.triple_positive,
+            self.triple_negative,
+        ]
 
-    def all_cells(self):
-        return tuple(
-            [
-                self.wt,
-                self.t8a,
-                self.wt_t8a,
-                self.n3a,
-                self.wt_n3a,
-                self.t8a_n3a,
-                self.triple_positive,
-                self.triple_negative,
-            ]
-        )
+        if venn:
+            populations[2], populations[3] = populations[3], populations[2]
+        if not complete:
+            populations.pop()
+        if ints:
+            populations = [int(value) for value in populations]
+
+        return tuple(populations)
 
     def total_cells(self):
-        return sum(self.all_cells())
+        return sum(self.cell_summary(venn=False, complete=True))
 
-    def frequency_venn(self):
-        return tuple([value / self.total_cells() for value in self.venn_plot_cells()])
+    def no_plot(self):
+        if self.cell_summary() == (0, 0, 0, 0, 0, 0, 0):
+            return True
+        return False
 
-    def frequency_all(self):
-        return tuple([value / self.total_cells() for value in self.all_cells()])
+    def frequency(self, venn=True, complete=False, digits=10):
+        return tuple(
+            [
+                round(value / self.total_cells(), digits)
+                for value in self.cell_summary(venn=venn, complete=complete)
+            ]
+        )
 
 
 class Timepoint:
@@ -106,6 +107,10 @@ class Timepoint:
     def __repr__(self):
         return f"Timepoint with {self._num_mice} mice"
 
+    def _add_mouse(self, mouse):
+        self._mice.append(mouse)
+        self._num_mice += 1
+
     def num_mice(self):
         return self._num_mice
 
@@ -115,49 +120,54 @@ class Timepoint:
     def mouse_summary(self):
         return self._num_mice, self._num_empty_mice
 
-    def _add_mouse(self, mouse):
-        self._mice.append(mouse)
-        self._num_mice += 1
+    def mouse_list(self):
+        return self._mice
 
     def add_mice(self, mice):
         for current in mice:
             self._add_mouse(current)
 
     def fill_empty_mice(self, number):
-        for _ in range(number - self._num_mice):
+        for _ in range(number - self.total_mice()):
             self._mice.append(Mouse())
-        self._num_empty_mice += number - self._num_mice
+        self._num_empty_mice += number - self.total_mice()
 
-    def timepoint_mean(self, venn=False):
-        population_names = [
-            "wt",
-            "t8a",
-            "wt_t8a",
-            "n3a",
-            "wt_n3a",
-            "t8a_n3a",
-            "triple_positive",
-            "triple_negative",
-        ]
-        if venn:
-            population_names.pop()
+    def mean(self, venn=True, complete=False, frequency=True, digits=2):
+        mean_values = [0.0] * 8
 
-        mean_values = []
-        for population in population_names:
-            mean_values.append(
-                sum([getattr(mouse, population) for mouse in self._mice])
-                / self._num_mice
-            )
+        for mouse in self._mice:
+            if mouse:
+                if frequency:
+                    current_values = mouse.frequency(venn=venn, complete=complete)
+                else:
+                    current_values = mouse.cell_summary(venn=venn, complete=complete)
+                for population, value in enumerate(current_values):
+                    mean_values[population] += value
+
+        mean_values = [round(value / self._num_mice, digits) for value in mean_values]
+
+        if not complete:
+            mean_values.pop()
 
         return tuple(mean_values)
+
+    def frequency(self, venn=True, complete=False, digits=10):
+        return [
+            mouse.frequency(venn, complete, digits)
+            if mouse
+            else mouse.cell_summary_venn()
+            for mouse in self._mice
+        ]
 
 
 class Experiment:
     """Class to represent and experiment consisting of objects of the `Timepoint` class"""
 
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self._timepoints = {}
         self._num_timepoints = 0
+        self._shape = [0, 0]
 
     def __round__(self, n=None):
         return [round(timepoint, n) for timepoint in self._timepoints]
@@ -168,16 +178,45 @@ class Experiment:
     def __repr__(self):
         return f"Experiment with {self._num_timepoints} timepoints {self.timepoint_names()}, with {[timepoint.mouse_summary() for timepoint in self.timepoints()]} mice each"
 
-    def num_timepoints(self):
-        return self._num_timepoints
-
     def _add_timepoint(self, timepoint, timepoint_name):
         self._timepoints[timepoint_name] = timepoint
         self._num_timepoints += 1
 
+    def _normalise_length(
+        self,
+    ):
+        max_mice = max(self.mouse_numbers())
+
+        for name, timepoint in self._timepoints.items():
+            if timepoint.total_mice() != max_mice:
+                timepoint.fill_empty_mice(max_mice)
+
+    def shape(self):
+        return tuple(self._shape)
+
+    def num_timepoints(self):
+        return self._num_timepoints
+
     def add_timepoints(self, timepoints, timepoint_names):
+        """
+
+        Parameters
+        ----------
+        timepoints : list[Timepoint]
+            List of ``Timepoint`` objects to be added.
+        timepoint_names : list[str]
+            List of names of all ``Timepoint`` objects to be added.
+
+        Returns
+        -------
+
+        """
         for point, name in zip(timepoints, timepoint_names):
             self._add_timepoint(point, name)
+            self._shape[1] += 1
+
+        self._normalise_length()
+        self._shape[0] = max(self.mouse_numbers())
 
     def timepoint_names(self):
         return list(self._timepoints.keys())
@@ -188,15 +227,114 @@ class Experiment:
     def mouse_numbers(self):
         return [timepoint.total_mice() for timepoint in self.timepoints()]
 
-    def normalise_length(
-        self,
-    ):  # Check if the change is on a copy or the original object
-        max_mice = max(self.mouse_numbers())
+    def frequency(self, venn=True, complete=False, digits=10):
+        return [
+            timepoint.frequency(venn, complete, digits)
+            for timepoint in self.timepoints()
+        ]
 
-        for name, timepoint in self._timepoints.items():
-            if timepoint.num_mice() != max_mice:
-                timepoint.fill_empty_mice(max_mice)
-                self._timepoints[name] = timepoint
+    def venn_plot(
+        self, file_name, mean_only=False, frequency=True, labels=True, digits=10
+    ):
+
+        height = self._shape[0] + 1
+        if mean_only:
+            height = 1
+
+        fig = plt.figure(
+            constrained_layout=True,
+            figsize=(16 * self._shape[1], (16 * height) + 4),
+        )
+        fig.suptitle("\n" + self.name + "\n", color="k", fontsize=90)
+
+        col_figs = fig.subfigures(1, self._shape[1], wspace=0)
+        row_figs = []
+
+        for current_col, _ in enumerate(col_figs):
+            col_figs[current_col].suptitle(
+                self.timepoint_names()[current_col], fontsize=80
+            )
+            row_figs.append(col_figs[current_col].subfigures(height, 1, hspace=0))
+        fig_list = np.empty((height, self._shape[1]), dtype=object)
+        colours = [
+            "#F7F4B6",
+            "#A6DCF8",
+            "#D66FAB",
+            "#9BA3AB",
+            "#86C665",
+            "#BD7343",
+            "#D6C6E1",
+        ]
+        patches = ["100", "010", "001", "111", "110", "101", "011"]
+
+        for current_col, current_timepoint in enumerate(self.timepoints()):
+            if not mean_only:
+                for current_row, mouse in enumerate(current_timepoint.mouse_list()):
+                    if mouse:
+                        fig_list[current_row][current_col] = row_figs[current_col][
+                            current_row
+                        ].subplots(1)
+                        fig_list[current_row][current_col].set_title(
+                            f"Mouse {current_row + 1}", fontsize=65, color="grey"
+                        )
+                        if mouse.no_plot():
+                            fig_list[current_row][current_col].axis("off")
+                            continue
+
+                        if frequency:
+                            current_data = mouse.frequency(digits=digits)
+                        else:
+                            current_data = mouse.cell_summary(ints=True)
+
+                        current_plot = venn3(
+                            subsets=current_data,
+                            set_labels=["WT", "T8A", "N3A"],
+                            ax=fig_list[current_row][current_col],
+                        )
+                        if not labels:
+                            for i, _ in enumerate(current_plot.subset_labels):
+                                try:
+                                    current_plot.subset_labels[i].set_visible(False)
+                                except AttributeError:
+                                    pass
+
+                        for text in current_plot.set_labels:
+                            text.set_fontsize(60)
+                        for text in current_plot.subset_labels:
+                            if text is not None:
+                                text.set_fontsize(50)
+                        for patch, colour in zip(patches, colours):
+                            try:
+                                current_plot.get_patch_by_id(patch).set_color(colour)
+                            except AttributeError:
+                                pass
+
+            fig_list[-1][current_col] = row_figs[current_col][-1].subplots(1)
+            means_plot = venn3(
+                subsets=current_timepoint.mean(frequency=frequency, digits=digits),
+                set_labels=["WT", "T8A", "N3A"],
+                ax=fig_list[-1][current_col],
+            )
+            fig_list[-1][current_col].set_title("Mean", fontsize=65, color="grey")
+            if not labels:
+                for i, _ in enumerate(means_plot.subset_labels):
+                    try:
+                        means_plot.subset_labels[i].set_visible(False)
+                    except AttributeError:
+                        pass
+            for text in means_plot.set_labels:
+                text.set_fontsize(60)
+            for text in means_plot.subset_labels:
+                if text is not None:
+                    text.set_fontsize(50)
+            for patch, colour in zip(patches, colours):
+                try:
+                    means_plot.get_patch_by_id(patch).set_color(colour)
+                except AttributeError:
+                    pass
+
+        fig.savefig(f"{file_name}.pdf")
+        plt.close("all")
 
 
 def header_clipping(experiment, cd45="+", filename=None, check=False):
@@ -273,8 +411,8 @@ def _timepoint_extraction_challenge(  # RETURNS TIMEPOINT
                 and row[indices[1]].rstrip().lower()
                 == time_names[time_name_index].rstrip().lower()
             ):
-                values = [int(float(row[index])) for index in indices[2:9]]
-                values.append(int(float(row[indices[9]])) - sum(values))
+                values = [float(row[index]) for index in indices[2:9]]
+                values.append(float(row[indices[9]]) - sum(values))
                 timepoint_mice.append(Mouse(*values))
 
     current_timepoint.add_mice(timepoint_mice)
@@ -289,8 +427,6 @@ def _timepoint_extraction_naive(  # RETURNS TIMEPOINT
     indices,
     time_names,
     time_name_index,
-    normalise,
-    double_count,
     column,
     filename,
 ):
@@ -312,23 +448,7 @@ def _timepoint_extraction_naive(  # RETURNS TIMEPOINT
             ):
                 values = [0 for _ in range(7)]
                 for index, value_index in zip(non_zero_positions[column], indices[2:6]):
-                    values[index] = int(float(row[value_index]))
-                if double_count:
-                    values[2] -= values[6]
-                    values[4] -= values[6]
-                    values[5] -= values[6]
-                    values[0] -= values[2] + values[4] + values[6]
-                    values[1] -= values[2] + values[5] + values[6]
-                    values[3] -= values[4] + values[5] + values[6]
-                if normalise:
-                    if sum(values) > 0:
-                        values = [
-                            current_value / sum(values) for current_value in values
-                        ]
-                    else:
-                        print(
-                            f"Sample for {time_names[time_name_index]} could not be normalised."
-                        )
+                    values[index] = float(row[value_index])
                 timepoint_mice.append(Mouse(*values))
     current_timepoint.add_mice(timepoint_mice)
     return current_timepoint
@@ -341,8 +461,6 @@ def timepoint_extraction(
     indices,
     time_names,
     time_name_index,
-    normalise,
-    double_count,
     data_type,
     column,
     filename,
@@ -354,8 +472,6 @@ def timepoint_extraction(
             indices,
             time_names,
             time_name_index,
-            normalise,
-            double_count,
             filename,
         )
     elif data_type == "naive" and column is not None:
@@ -364,8 +480,6 @@ def timepoint_extraction(
             indices,
             time_names,
             time_name_index,
-            normalise,
-            double_count,
             column,
             filename,
         )
@@ -383,8 +497,8 @@ def _column_index(filename, headers, data_type=None):
                 row.index(headers[1]),  # time_name
                 row.index(headers[2]),  # WT Single
                 row.index(headers[3]),  # T8A Single
-                row.index(headers[4]),  # WT T8A Double
-                row.index(headers[5]),  # N3A Single
+                row.index(headers[4]),  # N3A Single
+                row.index(headers[5]),  # WT T8A Double
                 row.index(headers[6]),  # WT N3A Double
                 row.index(headers[7]),  # T8A N3A Double
                 row.index(headers[8]),  # Triple
@@ -413,8 +527,6 @@ def data_extraction(  # RETURNS EXPERIMENT
     organ,
     headers,
     time_names,
-    normalise=False,
-    double_count=False,
     cd45=None,
     timepoints=None,
     data_type=None,
@@ -430,7 +542,7 @@ def data_extraction(  # RETURNS EXPERIMENT
     else:
         filename = f"{experiment}-{filename}{cd45}.csv"
 
-    current_experiment = Experiment()
+    current_experiment = Experiment(experiment)
     experiment_timepoints = []
 
     data = []
@@ -450,8 +562,6 @@ def data_extraction(  # RETURNS EXPERIMENT
             indices,
             time_names,
             current_time_name,
-            normalise,
-            double_count,
             data_type,
             column,
             filename,
@@ -594,6 +704,7 @@ def venn_plots(
     show=False,
     ignore=None,
     decimals=None,
+    pop_labels=True,
 ):
 
     max_mice = len(populations)
@@ -668,6 +779,12 @@ def venn_plots(
                 fig_list[row - num_ignored][col].set_title(
                     f"Mouse {row + 1}", fontsize=65, color="grey"
                 )
+                if not pop_labels:
+                    for i, _ in enumerate(current.subset_labels):
+                        try:
+                            current.subset_labels[i].set_visible(False)
+                        except AttributeError:
+                            pass
             elif means[col] != (-1, 0, 0, 0, 0, 0, 0):
                 current = venn3(
                     subsets=means[col],
@@ -677,6 +794,12 @@ def venn_plots(
                 fig_list[row - num_ignored][col].set_title(
                     "Mean", fontsize=65, color="grey"
                 )
+                if not pop_labels:
+                    for i, _ in enumerate(current.subset_labels):
+                        try:
+                            current.subset_labels[i].set_visible(False)
+                        except AttributeError:
+                            pass
             else:
                 fig_list[row - num_ignored][col].axis("off")
 
