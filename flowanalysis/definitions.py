@@ -31,6 +31,27 @@ class Mouse:
         triple_positive=0,
         triple_negative=0,
     ):
+        """
+        Constructor for the Mouse class.
+        Parameters
+        ----------
+        wt : int
+            Number of WT single positive cells.
+        t8a : int
+            Number of T8A single positive cells.
+        n3a : int
+            Number of N3A single positive cells.
+        wt_t8a : int
+            Number of WT+T8A double positive cells.
+        wt_n3a : int
+            Number of WT+N3A double positive cells.
+        t8a_n3a : int
+            Number of T8A+N3A double positive cells.
+        triple_positive : int
+            Number of triple positive cells.
+        triple_negative : int
+            Number of triple negative cells.
+        """
         self.wt = wt
         self.t8a = t8a
         self.n3a = n3a
@@ -53,6 +74,23 @@ class Mouse:
         return f"{self.cell_summary()} ({self.triple_negative})"
 
     def cell_summary(self, venn=True, complete=False, ints=False):
+        """
+        Summarises the populations of tetramer positive cells.
+
+        Parameters
+        ----------
+        venn : bool
+            If true returns populations formatted for the venn3 package
+        complete : bool
+            If false removes the triple negative population
+        ints : bool
+            If true returns a tuple of ``int``.
+
+        Returns
+        -------
+        populations : tuple
+            Tuple of populations of CD8 positive cells
+        """
         populations = [
             self.wt,
             self.t8a,
@@ -73,7 +111,18 @@ class Mouse:
 
         return tuple(populations)
 
+    def max_cells(self):
+        return max(self.cell_summary())
+
     def total_cells(self):
+        """
+        Calculates the total nuber of CD8 positive cells in the mouse
+
+        Returns
+        -------
+        total_cells : int
+            Total number of CD8 positive cells in the mouse
+        """
         return sum(self.cell_summary(venn=False, complete=True))
 
     def no_plot(self):
@@ -110,6 +159,9 @@ class Timepoint:
     def _add_mouse(self, mouse):
         self._mice.append(mouse)
         self._num_mice += 1
+
+    def mouse_list(self):
+        return self._mice
 
     def num_mice(self):
         return self._num_mice
@@ -191,6 +243,9 @@ class Experiment:
             if timepoint.total_mice() != max_mice:
                 timepoint.fill_empty_mice(max_mice)
 
+    def update_names(self, name_list):
+        self._timepoints = dict(zip(name_list, self._timepoints.values()))
+
     def shape(self):
         return tuple(self._shape)
 
@@ -233,13 +288,24 @@ class Experiment:
             for timepoint in self.timepoints()
         ]
 
+    def mean(self, venn=True, complete=False, frequency=False, digits=2):
+        return [
+            timepoint.mean(
+                venn=venn, complete=complete, frequency=frequency, digits=digits
+            )
+            for timepoint in self.timepoints()
+        ]
+
     def venn_plot(
-        self, file_name, mean_only=False, frequency=True, labels=True, digits=10
+        self, file_name, mean_only=False, frequency=True, labels=True, digits=2
     ):
 
         height = self._shape[0] + 1
         if mean_only:
             height = 1
+
+        if frequency:
+            digits = 10
 
         fig = plt.figure(
             constrained_layout=True,
@@ -256,16 +322,6 @@ class Experiment:
             )
             row_figs.append(col_figs[current_col].subfigures(height, 1, hspace=0))
         fig_list = np.empty((height, self._shape[1]), dtype=object)
-        colours = [
-            "#F7F4B6",
-            "#A6DCF8",
-            "#D66FAB",
-            "#9BA3AB",
-            "#86C665",
-            "#BD7343",
-            "#D6C6E1",
-        ]
-        patches = ["100", "010", "001", "111", "110", "101", "011"]
 
         for current_col, current_timepoint in enumerate(self.timepoints()):
             if not mean_only:
@@ -291,50 +347,270 @@ class Experiment:
                             set_labels=["WT", "T8A", "N3A"],
                             ax=fig_list[current_row][current_col],
                         )
-                        if not labels:
-                            for i, _ in enumerate(current_plot.subset_labels):
-                                try:
-                                    current_plot.subset_labels[i].set_visible(False)
-                                except AttributeError:
-                                    pass
-
-                        for text in current_plot.set_labels:
-                            text.set_fontsize(60)
-                        for text in current_plot.subset_labels:
-                            if text is not None:
-                                text.set_fontsize(50)
-                        for patch, colour in zip(patches, colours):
-                            try:
-                                current_plot.get_patch_by_id(patch).set_color(colour)
-                            except AttributeError:
-                                pass
-
-            fig_list[-1][current_col] = row_figs[current_col][-1].subplots(1)
+                        _venn_plot_options(current_plot, labels, 60, 50)
+            if mean_only:
+                fig_list[current_col] = row_figs[current_col].subplots(1)
+                fig_list[current_col].set_title("Mean", fontsize=65, color="grey")
+            else:
+                fig_list[-1][current_col] = row_figs[current_col][-1].subplots(1)
+                fig_list[-1][current_col].set_title("Mean", fontsize=65, color="grey")
             means_plot = venn3(
                 subsets=current_timepoint.mean(frequency=frequency, digits=digits),
                 set_labels=["WT", "T8A", "N3A"],
                 ax=fig_list[-1][current_col],
             )
-            fig_list[-1][current_col].set_title("Mean", fontsize=65, color="grey")
-            if not labels:
-                for i, _ in enumerate(means_plot.subset_labels):
-                    try:
-                        means_plot.subset_labels[i].set_visible(False)
-                    except AttributeError:
-                        pass
-            for text in means_plot.set_labels:
-                text.set_fontsize(60)
-            for text in means_plot.subset_labels:
-                if text is not None:
-                    text.set_fontsize(50)
-            for patch, colour in zip(patches, colours):
-                try:
-                    means_plot.get_patch_by_id(patch).set_color(colour)
-                except AttributeError:
-                    pass
+            _venn_plot_options(means_plot, labels, 60, 50)
 
         fig.savefig(f"{file_name}.pdf")
         plt.close("all")
+
+    def slope_plot(self, filename, zeroline=True):
+
+        patch_indices = [0, 1, 3, 2, 4, 5, 6]
+
+        height = 14
+        sup_title_size = 80
+        title_size = 70
+        label_size = 60
+        tick_size = 50
+        decimals = 2
+
+        fig = plt.figure(constrained_layout=True, figsize=(8 * height, 3 * height))
+        fig.suptitle("\n" + self.name + "\n", color="k", fontsize=sup_title_size)
+
+        max_y = max(
+            [
+                max([mouse.max_cells() * 2 for mouse in timepoint.mouse_list()])
+                for timepoint in self.timepoints()
+            ]
+        )
+
+        col_figs = fig.subfigures(3, 8, wspace=0.05, hspace=0.05)
+        fig_list = _slope_plot_array(col_figs, max_y, zeroline, title_size)
+
+        for current_row, _ in enumerate(col_figs):
+            for current_col in range(7):
+                current_patch = patch_indices[current_col]
+
+                fig_list[current_row][current_col].plot(
+                    times[:2],
+                    [value[current_patch] for value in means[:2]],
+                    "-",
+                    color="k",
+                )
+                fig_list[current_row][current_col].plot(
+                    times[1:],
+                    [means[1][current_patch], means[current_row + 2][current_patch]],
+                    "-",
+                    color="k",
+                )
+
+                fig_list[current_row][current_col].plot(
+                    times[:2],
+                    [value[current_patch] for value in means[:2]],
+                    "D",
+                    ms=40,
+                    color="teal",
+                )
+                fig_list[current_row][current_col].plot(
+                    times[2],
+                    [means[current_row + 2][current_patch]],
+                    "D",
+                    ms=40,
+                    color="teal",
+                )
+
+                slope_1 = (means[1][current_patch] - means[0][current_patch]) / (
+                    times[1] - times[0]
+                )
+                y1 = (means[1][current_patch] + means[0][current_patch]) / 2
+                slope_2 = (
+                    means[current_row + 2][current_patch] - means[1][current_patch]
+                ) / (times[2] - times[1])
+                y2 = (
+                    means[current_row + 2][current_patch] + means[1][current_patch]
+                ) / 8
+
+                fig_list[current_row][current_col].text(
+                    40,
+                    y1,
+                    str(round(slope_1, decimals)),
+                    fontsize=label_size,
+                    bbox=dict(edgecolor="w", facecolor="w", alpha=1),
+                )
+                fig_list[current_row][current_col].text(
+                    80,
+                    y2,
+                    str(round(slope_2, decimals)),
+                    fontsize=label_size,
+                    bbox=dict(edgecolor="w", facecolor="w", alpha=1),
+                )
+
+                if zeroline:
+                    fig_list[current_row][current_col].axhline(
+                        y=0, color="teal", linestyle="-"
+                    )
+
+        for current_row, _ in enumerate(col_figs):
+            fig_list[current_row][7] = col_figs[current_row][7].subplots(1)
+            fig_list[current_row][7].yaxis.tick_right()
+
+            fig_list[current_row][7].set_yscale("symlog", linthresh=100)
+            fig_list[current_row][7].set_ylim(
+                min([value[0] for value in neg_means]) / 2,
+                max([value[0] for value in neg_means]) * 2,
+            )
+            fig_list[current_row][7].set_xlim(5, 105)
+            fig_list[current_row][7].tick_params(
+                width=3, length=10, labelsize=tick_size
+            )
+
+            fig_list[current_row][7].set_xticks(times)
+            if current_row == len(col_figs) - 1:
+                fig_list[current_row][7].set_xticklabels(times)
+                fig_list[current_row][7].set_xlabel(
+                    "Days post infection", fontsize=label_size
+                )
+            else:
+                fig_list[current_row][7].set_xticklabels([])
+
+            fig_list[current_row][7].plot(
+                times[:2], [value[0] for value in neg_means[:2]], "-", color="k"
+            )
+            fig_list[current_row][7].plot(
+                times[1:],
+                [neg_means[1][0], neg_means[current_row + 2][0]],
+                "-",
+                color="k",
+            )
+
+            fig_list[current_row][7].plot(
+                times[:2],
+                [value[0] for value in neg_means[:2]],
+                "D",
+                ms=40,
+                color="teal",
+            )
+            fig_list[current_row][7].plot(
+                times[2], [neg_means[current_row + 2][0]], "D", ms=40, color="teal"
+            )
+
+            slope_1 = (neg_means[1][0] - neg_means[0][0]) / (times[1] - times[0])
+            y1 = (neg_means[1][0] + neg_means[0][0]) / 2
+            slope_2 = (neg_means[current_row + 2][0] - neg_means[1][0]) / (
+                times[2] - times[1]
+            )
+            y2 = (neg_means[current_row + 2][0] + neg_means[1][0]) / 3
+
+            fig_list[current_row][7].text(
+                40,
+                y1,
+                str(round(slope_1, decimals)),
+                fontsize=label_size,
+                bbox=dict(edgecolor="w", facecolor="w", alpha=1),
+            )
+            fig_list[current_row][7].text(
+                70,
+                y2,
+                str(round(slope_2, decimals)),
+                fontsize=label_size,
+                bbox=dict(edgecolor="w", facecolor="w", alpha=1),
+            )
+
+        fig.savefig(f"{filename}.pdf")
+        plt.close("all")
+
+
+def _venn_plot_options(ax, labels, label_size, number_size):
+    """
+
+    Parameters
+    ----------
+    ax : matplotlib_venn._common.VennDiagram
+    labels : bool
+    label_size : int
+    number_size : int
+    """
+
+    colours = [
+        "#F7F4B6",
+        "#A6DCF8",
+        "#D66FAB",
+        "#9BA3AB",
+        "#86C665",
+        "#BD7343",
+        "#D6C6E1",
+    ]
+    patches = ["100", "010", "001", "111", "110", "101", "011"]
+
+    if not labels:
+        for i, _ in enumerate(ax.subset_labels):
+            try:
+                ax.subset_labels[i].set_visible(False)
+            except AttributeError:
+                pass
+    for text in ax.set_labels:
+        text.set_fontsize(label_size)
+    for text in ax.subset_labels:
+        if text is not None:
+            text.set_fontsize(number_size)
+    for patch, colour in zip(patches, colours):
+        try:
+            ax.get_patch_by_id(patch).set_color(colour)
+        except AttributeError:
+            pass
+
+
+def _slope_plot_array(ax, max_y, zeroline, fontsize):
+
+    patch_names = [
+        "WT",
+        "T8A",
+        "N3A",
+        "WT+T8A",
+        "WT+N3A",
+        "T8A+N3A",
+        "Triple positive",
+        "Triple negative",
+    ]
+    times = [10, 70, 90]
+
+    fig_list = np.empty((3, 8), dtype=object)
+
+    for row, current_row in enumerate(ax):
+        for col, _ in enumerate(current_row):
+            fig_list[row, col] = ax[row, col].subplots(1)
+
+            if col < len(current_row):
+                fig_list[row, col].set_yscale("symlog", linthresh=100)
+                fig_list[row, col].set_ylim(-50, max_y)
+            fig_list[row, col].set_xlim(5, 105)
+            fig_list[row, col].tick_params(width=3, length=10, labelsize=fontsize - 30)
+
+            if col == 0:
+                fig_list[row, col].set_ylabel(
+                    f"{patch_names[current_row]} challenge (\\# of cells)",
+                    fontsize=fontsize - 20,
+                )
+            else:
+                fig_list[row, col].set_yticklabels([])
+
+            fig_list[row, col].set_xticks(times)
+            if current_row == len(ax) - 1:
+                fig_list[row, col].set_xticklabels(times)
+                fig_list[row, col].set_xlabel(
+                    "Days post infection", fontsize=fontsize - 20
+                )
+            else:
+                fig_list[row, col].set_xticklabels([])
+
+            if zeroline:
+                fig_list[row, col].axhline(y=0, color="teal", linestyle="-")
+
+    for index, current in enumerate(ax[0, :]):
+        current.suptitle(patch_names[index], fontsize=fontsize)
+
+    return fig_list
 
 
 def header_clipping(experiment, cd45="+", filename=None, check=False):
@@ -527,6 +803,7 @@ def data_extraction(  # RETURNS EXPERIMENT
     organ,
     headers,
     time_names,
+    standard_names=None,
     cd45=None,
     timepoints=None,
     data_type=None,
@@ -537,16 +814,20 @@ def data_extraction(  # RETURNS EXPERIMENT
     if cd45 is None:
         cd45 = "+"
 
+    if cd45 == "+":
+        cd45_name = "circulating"
+    else:
+        cd45_name = "resident"
+
     if filename is None:
         filename = f"{experiment}{cd45}.csv"
     else:
         filename = f"{experiment}-{filename}{cd45}.csv"
 
-    current_experiment = Experiment(experiment)
+    current_experiment = Experiment(
+        " ".join([organ[0].upper() + organ[1:], cd45_name, "--", experiment, "primary"])
+    )
     experiment_timepoints = []
-
-    data = []
-    neg_data = []
 
     if timepoints is None:
         num_timepoints = len(time_names)
@@ -556,7 +837,6 @@ def data_extraction(  # RETURNS EXPERIMENT
     indices = _column_index(filename, headers, data_type=data_type)
 
     for current_time_name in range(num_timepoints):
-        # current_col, neg_current_col = timepoint_extraction(
         current_timepoint = timepoint_extraction(
             organ,
             indices,
@@ -571,35 +851,11 @@ def data_extraction(  # RETURNS EXPERIMENT
     current_experiment.add_timepoints(
         experiment_timepoints, time_names[:num_timepoints]
     )
-    return current_experiment
 
-    #     for _ in range(len(current_col) - len(data)):
-    #         previous = []
-    #         neg_previous = []
-    #         for _ in range(current_time_name):
-    #             previous.append((-1, 0, 0, 0, 0, 0, 0))
-    #             neg_previous.append((-1,))
-    #         data.append(previous)
-    #         neg_data.append(neg_previous)
-    #     if current_time_name > 0:
-    #         for row in data:
-    #             row.append((-1, 0, 0, 0, 0, 0, 0))
-    #         for row in neg_data:
-    #             row.append((-1,))
-    #     for current_mouse, _ in enumerate(current_col):
-    #         if current_time_name > 0:
-    #             data[current_mouse][-1] = current_col[current_mouse]
-    #             if neg_current_col is not None:
-    #                 neg_data[current_mouse][-1] = neg_current_col[current_mouse]
-    #         else:
-    #             data[current_mouse].append(current_col[current_mouse])
-    #             if neg_current_col is not None:
-    #                 neg_data[current_mouse].append(neg_current_col[current_mouse])
-    #
-    # if not neg_data[0]:
-    #     return data, None
-    # else:
-    #     return data, neg_data
+    if standard_names is not None:
+        current_experiment.update_names(standard_names)
+
+    return current_experiment
 
 
 def combine_naive_data(data_list):
@@ -690,137 +946,6 @@ def _round_populations(populations, decimals=None):
         rounded_data.append(deepcopy(rounded_mouse))
 
     return rounded_data
-
-
-def venn_plots(
-    num_timepoints,
-    populations,
-    experiments,
-    tetramers,
-    title=None,
-    file_name=None,
-    normalised=False,
-    extension=None,
-    show=False,
-    ignore=None,
-    decimals=None,
-    pop_labels=True,
-):
-
-    max_mice = len(populations)
-    means, actual_mice = population_means(
-        populations, normalised=normalised, ignore=ignore, decimals=decimals
-    )
-
-    if isinstance(populations[0][0][0], float):
-        populations = _round_populations(populations, decimals=decimals)
-
-    if ignore is None:
-        ignore = []
-        actual_mice = max_mice
-
-    if title is not None:
-        fig = plt.figure(
-            constrained_layout=True,
-            figsize=(16 * num_timepoints, (16 * (actual_mice + 1)) + 4),
-        )
-        fig.suptitle("\n" + title + "\n", color="k", fontsize=90)
-    else:
-        fig = plt.figure(
-            constrained_layout=True,
-            figsize=(16 * num_timepoints, 16 * (actual_mice + 1)),
-        )
-        fig.suptitle("-", color="w", fontsize=60)
-    col_figs = fig.subfigures(1, num_timepoints, wspace=0)
-    row_figs = []
-    for current_col, _ in enumerate(col_figs):
-        col_figs[current_col].suptitle(experiments[current_col], fontsize=80)
-        row_figs.append(col_figs[current_col].subfigures(actual_mice + 1, 1, hspace=0))
-    fig_list = np.empty((actual_mice + 1, num_timepoints), dtype=object)
-    colours = [
-        "#F7F4B6",
-        "#A6DCF8",
-        "#D66FAB",
-        "#9BA3AB",
-        "#86C665",
-        "#BD7343",
-        "#D6C6E1",
-    ]
-    patches = ["100", "010", "001", "111", "110", "101", "011"]
-
-    for col in range(num_timepoints):
-        num_ignored = 0
-        for row in range(max_mice + 1):
-            if row in ignore:
-                num_ignored += 1
-                continue
-
-            fig_list[row - num_ignored][col] = row_figs[col][
-                row - num_ignored
-            ].subplots(1)
-
-            if row < max_mice and (
-                populations[row][col] == (-1, 0, 0, 0, 0, 0, 0)
-                or populations[row][col] == (0, 0, 0, 0, 0, 0, 0)
-            ):
-                fig_list[row - num_ignored][col].axis("off")
-                if populations[row][col] == (0, 0, 0, 0, 0, 0, 0):
-                    fig_list[row - num_ignored][col].set_title(
-                        f"Mouse {row + 1}", fontsize=65, color="grey"
-                    )
-                continue
-
-            if row != max_mice:
-                current = venn3(
-                    subsets=populations[row][col],
-                    set_labels=tetramers,
-                    ax=fig_list[row - num_ignored][col],
-                )
-                fig_list[row - num_ignored][col].set_title(
-                    f"Mouse {row + 1}", fontsize=65, color="grey"
-                )
-                if not pop_labels:
-                    for i, _ in enumerate(current.subset_labels):
-                        try:
-                            current.subset_labels[i].set_visible(False)
-                        except AttributeError:
-                            pass
-            elif means[col] != (-1, 0, 0, 0, 0, 0, 0):
-                current = venn3(
-                    subsets=means[col],
-                    set_labels=tetramers,
-                    ax=fig_list[row - num_ignored][col],
-                )
-                fig_list[row - num_ignored][col].set_title(
-                    "Mean", fontsize=65, color="grey"
-                )
-                if not pop_labels:
-                    for i, _ in enumerate(current.subset_labels):
-                        try:
-                            current.subset_labels[i].set_visible(False)
-                        except AttributeError:
-                            pass
-            else:
-                fig_list[row - num_ignored][col].axis("off")
-
-            for text in current.set_labels:
-                text.set_fontsize(60)
-            for text in current.subset_labels:
-                if text is not None:
-                    text.set_fontsize(50)
-
-            for patch, colour in zip(patches, colours):
-                try:
-                    current.get_patch_by_id(patch).set_color(colour)
-                except AttributeError:
-                    pass
-
-    if extension is None:
-        extension = "pdf"
-    if file_name is not None:
-        fig.savefig(f"{file_name}.{extension}")
-    if not show:
-        plt.close("all")
 
 
 def slope_plots(
