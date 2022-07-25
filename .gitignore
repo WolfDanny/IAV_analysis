@@ -11,6 +11,7 @@ figures/**
 *.png
 *.zip
 *.xlsx
+*old*
 
 ### JupyterNotebooks ###
 # gitignore template for Jupyter Notebooks

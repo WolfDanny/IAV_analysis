@@ -71,7 +71,10 @@ class Mouse:
             return True
 
     def __repr__(self):
-        return f"{self.cell_summary()} ({self.triple_negative})"
+        if self:
+            return f"{self.cell_summary()} ({self.triple_negative})"
+        else:
+            return "Empty mouse"
 
     def cell_summary(self, venn=True, complete=False, ints=False):
         """
@@ -111,8 +114,8 @@ class Mouse:
 
         return tuple(populations)
 
-    def max_cells(self):
-        return max(self.cell_summary())
+    def max_cells(self, complete=False, ints=False):
+        return max(self.cell_summary(complete=complete, ints=ints))
 
     def total_cells(self):
         """
@@ -366,156 +369,34 @@ class Experiment:
 
     def slope_plot(self, filename, zeroline=True):
 
-        patch_indices = [0, 1, 3, 2, 4, 5, 6]
-
         height = 14
         sup_title_size = 80
         title_size = 70
-        label_size = 60
-        tick_size = 50
-        decimals = 2
 
         fig = plt.figure(constrained_layout=True, figsize=(8 * height, 3 * height))
         fig.suptitle("\n" + self.name + "\n", color="k", fontsize=sup_title_size)
 
-        max_y = max(
-            [
-                max([mouse.max_cells() * 2 for mouse in timepoint.mouse_list()])
-                for timepoint in self.timepoints()
-            ]
-        )
+        max_y = max([max(value) * 5 for value in self.mean()])
+        min_y_neg = min([max(value) / 2 for value in self.mean(complete=True)])
+        max_y_neg = max([max(value) * 2 for value in self.mean(complete=True)])
+
+        means = self.mean(venn=False, complete=True)
 
         col_figs = fig.subfigures(3, 8, wspace=0.05, hspace=0.05)
-        fig_list = _slope_plot_array(col_figs, max_y, zeroline, title_size)
+        fig_list = _slope_plot_array(
+            col_figs, [max_y, min_y_neg, max_y_neg], zeroline, title_size
+        )
 
         for current_row, _ in enumerate(col_figs):
             for current_col in range(7):
-                current_patch = patch_indices[current_col]
-
-                fig_list[current_row][current_col].plot(
-                    times[:2],
-                    [value[current_patch] for value in means[:2]],
-                    "-",
-                    color="k",
+                _slope_plot(
+                    fig_list[current_row, current_col],
+                    means,
+                    current_row,
+                    current_col,
+                    title_size,
                 )
-                fig_list[current_row][current_col].plot(
-                    times[1:],
-                    [means[1][current_patch], means[current_row + 2][current_patch]],
-                    "-",
-                    color="k",
-                )
-
-                fig_list[current_row][current_col].plot(
-                    times[:2],
-                    [value[current_patch] for value in means[:2]],
-                    "D",
-                    ms=40,
-                    color="teal",
-                )
-                fig_list[current_row][current_col].plot(
-                    times[2],
-                    [means[current_row + 2][current_patch]],
-                    "D",
-                    ms=40,
-                    color="teal",
-                )
-
-                slope_1 = (means[1][current_patch] - means[0][current_patch]) / (
-                    times[1] - times[0]
-                )
-                y1 = (means[1][current_patch] + means[0][current_patch]) / 2
-                slope_2 = (
-                    means[current_row + 2][current_patch] - means[1][current_patch]
-                ) / (times[2] - times[1])
-                y2 = (
-                    means[current_row + 2][current_patch] + means[1][current_patch]
-                ) / 8
-
-                fig_list[current_row][current_col].text(
-                    40,
-                    y1,
-                    str(round(slope_1, decimals)),
-                    fontsize=label_size,
-                    bbox=dict(edgecolor="w", facecolor="w", alpha=1),
-                )
-                fig_list[current_row][current_col].text(
-                    80,
-                    y2,
-                    str(round(slope_2, decimals)),
-                    fontsize=label_size,
-                    bbox=dict(edgecolor="w", facecolor="w", alpha=1),
-                )
-
-                if zeroline:
-                    fig_list[current_row][current_col].axhline(
-                        y=0, color="teal", linestyle="-"
-                    )
-
-        for current_row, _ in enumerate(col_figs):
-            fig_list[current_row][7] = col_figs[current_row][7].subplots(1)
-            fig_list[current_row][7].yaxis.tick_right()
-
-            fig_list[current_row][7].set_yscale("symlog", linthresh=100)
-            fig_list[current_row][7].set_ylim(
-                min([value[0] for value in neg_means]) / 2,
-                max([value[0] for value in neg_means]) * 2,
-            )
-            fig_list[current_row][7].set_xlim(5, 105)
-            fig_list[current_row][7].tick_params(
-                width=3, length=10, labelsize=tick_size
-            )
-
-            fig_list[current_row][7].set_xticks(times)
-            if current_row == len(col_figs) - 1:
-                fig_list[current_row][7].set_xticklabels(times)
-                fig_list[current_row][7].set_xlabel(
-                    "Days post infection", fontsize=label_size
-                )
-            else:
-                fig_list[current_row][7].set_xticklabels([])
-
-            fig_list[current_row][7].plot(
-                times[:2], [value[0] for value in neg_means[:2]], "-", color="k"
-            )
-            fig_list[current_row][7].plot(
-                times[1:],
-                [neg_means[1][0], neg_means[current_row + 2][0]],
-                "-",
-                color="k",
-            )
-
-            fig_list[current_row][7].plot(
-                times[:2],
-                [value[0] for value in neg_means[:2]],
-                "D",
-                ms=40,
-                color="teal",
-            )
-            fig_list[current_row][7].plot(
-                times[2], [neg_means[current_row + 2][0]], "D", ms=40, color="teal"
-            )
-
-            slope_1 = (neg_means[1][0] - neg_means[0][0]) / (times[1] - times[0])
-            y1 = (neg_means[1][0] + neg_means[0][0]) / 2
-            slope_2 = (neg_means[current_row + 2][0] - neg_means[1][0]) / (
-                times[2] - times[1]
-            )
-            y2 = (neg_means[current_row + 2][0] + neg_means[1][0]) / 3
-
-            fig_list[current_row][7].text(
-                40,
-                y1,
-                str(round(slope_1, decimals)),
-                fontsize=label_size,
-                bbox=dict(edgecolor="w", facecolor="w", alpha=1),
-            )
-            fig_list[current_row][7].text(
-                70,
-                y2,
-                str(round(slope_2, decimals)),
-                fontsize=label_size,
-                bbox=dict(edgecolor="w", facecolor="w", alpha=1),
-            )
+            _slope_plot(fig_list[current_row, -1], means, current_row, -1, title_size)
 
         fig.savefig(f"{filename}.pdf")
         plt.close("all")
@@ -561,7 +442,7 @@ def _venn_plot_options(ax, labels, label_size, number_size):
             pass
 
 
-def _slope_plot_array(ax, max_y, zeroline, fontsize):
+def _slope_plot_array(ax, y_lims, zeroline, fontsize):
 
     patch_names = [
         "WT",
@@ -581,36 +462,99 @@ def _slope_plot_array(ax, max_y, zeroline, fontsize):
         for col, _ in enumerate(current_row):
             fig_list[row, col] = ax[row, col].subplots(1)
 
-            if col < len(current_row):
-                fig_list[row, col].set_yscale("symlog", linthresh=100)
-                fig_list[row, col].set_ylim(-50, max_y)
+            if col < len(current_row) - 1:
+                fig_list[row, col].set_ylim(-50, y_lims[0])
+            else:
+                fig_list[row, col].set_ylim(y_lims[1], y_lims[2])
+                fig_list[row, col].yaxis.tick_right()
+            fig_list[row, col].set_yscale("symlog", linthresh=100)
             fig_list[row, col].set_xlim(5, 105)
-            fig_list[row, col].tick_params(width=3, length=10, labelsize=fontsize - 30)
+            fig_list[row, col].tick_params(width=3, length=10, labelsize=fontsize - 20)
 
             if col == 0:
                 fig_list[row, col].set_ylabel(
-                    f"{patch_names[current_row]} challenge (\\# of cells)",
-                    fontsize=fontsize - 20,
+                    f"{patch_names[row]} challenge (\\# of cells)",
+                    fontsize=fontsize - 10,
                 )
-            else:
+            elif col < len(ax[0]) - 1:
                 fig_list[row, col].set_yticklabels([])
 
             fig_list[row, col].set_xticks(times)
-            if current_row == len(ax) - 1:
+            if row == len(ax) - 1:
                 fig_list[row, col].set_xticklabels(times)
                 fig_list[row, col].set_xlabel(
-                    "Days post infection", fontsize=fontsize - 20
+                    "Days post infection", fontsize=fontsize - 10
                 )
             else:
                 fig_list[row, col].set_xticklabels([])
 
-            if zeroline:
+            if zeroline and col < len(ax[0]) - 1:
                 fig_list[row, col].axhline(y=0, color="teal", linestyle="-")
 
     for index, current in enumerate(ax[0, :]):
         current.suptitle(patch_names[index], fontsize=fontsize)
 
     return fig_list
+
+
+def _slope_plot(ax, means, row, col, fontsize, digits=2):
+
+    times = [10, 70, 90]
+
+    ax.plot(
+        times[:2],
+        [value[col] for value in means[:2]],
+        "-",
+        color="k",
+    )
+    ax.plot(
+        times[1:],
+        [means[1][col], means[row + 2][col]],
+        "-",
+        color="k",
+    )
+
+    ax.plot(
+        times[:2],
+        [value[col] for value in means[:2]],
+        "D",
+        ms=40,
+        color="teal",
+    )
+    ax.plot(
+        times[2],
+        [means[row + 2][col]],
+        "D",
+        ms=40,
+        color="teal",
+    )
+
+    slope_1 = (means[1][col] - means[0][col]) / (times[1] - times[0])
+    y1 = (means[1][col] + means[0][col]) / 2
+    slope_2 = (means[row + 2][col] - means[1][col]) / (times[2] - times[1])
+    if col != -1:
+        y2 = max(means[row + 2][col], means[1][col]) * 2
+    else:
+        y2 = (
+            max(means[row + 2][col], means[1][col]) * 1.25
+        )  # (means[row + 2][col] + means[1][col]) / 2
+
+    ax.text(
+        40,
+        y1,
+        str(round(slope_1, digits)),
+        fontsize=fontsize - 10,
+        ha="center",
+        bbox=dict(edgecolor="w", facecolor="w", alpha=1),
+    )
+    ax.text(
+        80,
+        y2,
+        str(round(slope_2, digits)),
+        fontsize=fontsize - 10,
+        ha="center",
+        bbox=dict(edgecolor="w", facecolor="w", alpha=1),
+    )
 
 
 def header_clipping(experiment, cd45="+", filename=None, check=False):
