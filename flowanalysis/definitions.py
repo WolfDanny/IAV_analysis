@@ -32,7 +32,8 @@ class Mouse:
         triple_negative=0,
     ):
         """
-        Constructor for the Mouse class.
+        Constructor for the ``Mouse`` class.
+
         Parameters
         ----------
         wt : int
@@ -83,11 +84,11 @@ class Mouse:
         Parameters
         ----------
         venn : bool
-            If true returns populations formatted for the venn3 package
+            If True returns populations formatted for the venn3 package.
         complete : bool
-            If false removes the triple negative population
+            If False the triple negative population is removed.
         ints : bool
-            If true returns a tuple of ``int``.
+            If True returns a tuple of integers.
 
         Returns
         -------
@@ -115,6 +116,22 @@ class Mouse:
         return tuple(populations)
 
     def max_cells(self, complete=False, ints=False):
+        """
+        Returns the maximum number of cells between populations.
+
+        Parameters
+        ----------
+        complete : bool
+            If False the triple negative population is removed.
+        ints : bool
+            if True returns an integer.
+
+        Returns
+        -------
+        float, int
+            Maximum number of cells between populations.
+
+        """
         return max(self.cell_summary(complete=complete, ints=ints))
 
     def total_cells(self):
@@ -129,11 +146,36 @@ class Mouse:
         return sum(self.cell_summary(venn=False, complete=True))
 
     def no_plot(self):
+        """
+        Checks if a plot is required for the mouse.
+
+        Returns
+        -------
+        bool
+            True if there are positive populations, False otherwise.
+        """
         if self.cell_summary() == (0, 0, 0, 0, 0, 0, 0):
             return True
         return False
 
     def frequency(self, venn=True, complete=False, digits=10):
+        """
+        Returns a tuple of the frequencies of each population with respect to CD8 positive cells.
+
+        Parameters
+        ----------
+        venn : bool
+            If True returns populations formatted for the venn3 package.
+        complete : bool
+            If False the triple negative population is removed.
+        digits : int
+            Number of decimal places to be rounded to.
+
+        Returns
+        -------
+        tuple[float]
+            Tuple of the frequencies of each population.
+        """
         return tuple(
             [
                 round(value / self.total_cells(), digits)
@@ -146,6 +188,9 @@ class Timepoint:
     """Class to represent a timepoint consisting of objects of the `Mouse` class"""
 
     def __init__(self):
+        """
+        Constructor for the ``Timepoint`` class.
+        """
         self._mice = []
         self._num_mice = 0
         self._num_empty_mice = 0
@@ -160,34 +205,105 @@ class Timepoint:
         return f"Timepoint with {self._num_mice} mice"
 
     def _add_mouse(self, mouse):
+        """
+        Adds ``mouse`` to the list of mice in the timepoint, and increases the number of mice.
+
+        Parameters
+        ----------
+        mouse : Mouse
+            Mouse to be added to the timepoint.
+        """
         self._mice.append(mouse)
         self._num_mice += 1
 
     def mouse_list(self):
+        """
+        Returns the list of mice in the timepoint.
+
+        Returns
+        -------
+        list[Mouse]
+            List of mice in the timepoint.
+        """
         return self._mice
 
     def num_mice(self):
+        """
+        Returns the number of mice in the timepoint.
+
+        Returns
+        -------
+        int
+            Number of mice in the timepoint
+        """
         return self._num_mice
 
     def total_mice(self):
+        """
+        Returns the number of mice in the timepoint, including empty mice.
+
+        Returns
+        -------
+        int
+            Total number of mice in the timepoint.
+        """
         return sum(self.mouse_summary())
 
     def mouse_summary(self):
+        """
+        Returns a summary of the mice in the timepoint.
+
+        Returns
+        -------
+        tuple[int]
+            Tuple of the number of actual mice and the number of empty mice.
+        """
         return self._num_mice, self._num_empty_mice
 
-    def mouse_list(self):
-        return self._mice
-
     def add_mice(self, mice):
+        """
+        Adds a list of mice to the timepoint.
+
+        Parameters
+        ----------
+        mice : list[Mouse]
+        """
         for current in mice:
             self._add_mouse(current)
 
     def fill_empty_mice(self, number):
+        """
+        Fills the timepoint with empty mice so that the total number of mice is ``number``.
+
+        Parameters
+        ----------
+        number : int
+            Number of total mice wanted.
+        """
         for _ in range(number - self.total_mice()):
             self._mice.append(Mouse())
         self._num_empty_mice += number - self.total_mice()
 
     def mean(self, venn=True, complete=False, frequency=True, digits=2):
+        """
+        ``Mouse``
+
+        Parameters
+        ----------
+        venn : bool
+            If True returns populations formatted for the venn3 package.
+        complete : bool
+            If False the triple negative population is removed.
+        frequency : bool
+            If True the frequency with respect to CD8 positive cells is calculated.
+        digits : int
+            Number of decimal places to be rounded to.
+
+        Returns
+        -------
+        mean_values: tuple[float]
+            Mean value of the populations in the timepoint.
+        """
         mean_values = [0.0] * 8
 
         for mouse in self._mice:
@@ -207,6 +323,23 @@ class Timepoint:
         return tuple(mean_values)
 
     def frequency(self, venn=True, complete=False, digits=10):
+        """
+        Returns a list of tuples containing the frequencies of each population for each mouse in the timepoint.
+
+        Parameters
+        ----------
+        venn : bool
+            If True returns populations formatted for the venn3 package.
+        complete : bool
+            If False the triple negative population is removed.
+        digits : int
+            Number of decimal places to be rounded to.
+
+        Returns
+        -------
+        list[tuple[float]]
+            List of frequencies for each mouse in the timepoint.
+        """
         return [
             mouse.frequency(venn, complete, digits)
             if mouse
@@ -219,6 +352,14 @@ class Experiment:
     """Class to represent and experiment consisting of objects of the `Timepoint` class"""
 
     def __init__(self, name):
+        """
+        Constructor for the ``Experiment`` class.
+
+        Parameters
+        ----------
+        name : str
+            Name of the experiment.
+        """
         self.name = name
         self._timepoints = {}
         self._num_timepoints = 0
@@ -234,22 +375,55 @@ class Experiment:
         return f"Experiment with {self._num_timepoints} timepoints {self.timepoint_names()}, with {[timepoint.mouse_summary() for timepoint in self.timepoints()]} mice each"
 
     def _add_timepoint(self, timepoint, timepoint_name):
-        self._timepoints[timepoint_name] = timepoint
-        self._num_timepoints += 1
+        """
+        Add ``timepoint`` under the name ``timepoint_name`` to the dictionary of timepoints.
 
-    def _normalise_length(
-        self,
-    ):
+        Updates the shape of the experiment and normalises the length of the timepoints.
+
+        Parameters
+        ----------
+        timepoint : Timepoint
+            Timepoint to be added to the experiment.
+        timepoint_name : str
+            Name of the timepoint to be added.
+        """
+        self._timepoints[timepoint_name] = timepoint
+
+        self._num_timepoints += 1
+        self._shape[1] += 1
+        self._normalise_length()
+        self._shape[0] = max(self.mouse_numbers())
+
+    def _normalise_length(self):
+        """
+        Normalises the length of all timepoints to the length of largest timepoint.
+        """
         max_mice = max(self.mouse_numbers())
 
         for name, timepoint in self._timepoints.items():
             if timepoint.total_mice() != max_mice:
                 timepoint.fill_empty_mice(max_mice)
 
-    def update_names(self, name_list):
+    def change_names(self, name_list):
+        """
+        Change the names of the timepoints.
+
+        Parameters
+        ----------
+        name_list : list[str]
+            Ordered list of new names for the timepoints.
+        """
         self._timepoints = dict(zip(name_list, self._timepoints.values()))
 
     def shape(self):
+        """
+        Returns the shape of the experiment (mice, timepoints).
+
+        Returns
+        -------
+        tuple[int]
+            Shape of the experiment.
+        """
         return tuple(self._shape)
 
     def num_timepoints(self):
@@ -257,6 +431,7 @@ class Experiment:
 
     def add_timepoints(self, timepoints, timepoint_names):
         """
+        Adds a list of timepoints and their names to the experiment.
 
         Parameters
         ----------
@@ -271,27 +446,81 @@ class Experiment:
         """
         for point, name in zip(timepoints, timepoint_names):
             self._add_timepoint(point, name)
-            self._shape[1] += 1
-
-        self._normalise_length()
-        self._shape[0] = max(self.mouse_numbers())
 
     def timepoint_names(self):
+        """
+        Returns a list of the names of all timepoints in the experiment.
+
+        Returns
+        -------
+        list[str]
+            Names of timepoints in the experiment.
+        """
         return list(self._timepoints.keys())
 
     def timepoints(self):
+        """
+        Returns a list of timepoints in the experiment.
+
+        Returns
+        -------
+        list[Timepoint]
+            List of timepoints in the experiment
+        """
         return list(self._timepoints.values())
 
     def mouse_numbers(self):
+        """
+        Returns a list of the total number of mice in each timepoint.
+
+        Returns
+        -------
+        list[int]
+            Total number of mice in each timepoint.
+        """
         return [timepoint.total_mice() for timepoint in self.timepoints()]
 
     def frequency(self, venn=True, complete=False, digits=10):
+        """
+
+        Parameters
+        ----------
+        venn : bool
+            If True returns populations formatted for the venn3 package.
+        complete : bool
+            If False the triple negative population is removed.
+        digits : int
+            Number of decimal places to be rounded to.
+
+        Returns
+        -------
+        list[list[tuple[float]]]
+            List of frequencies for each mouse in each timepoint.
+        """
         return [
             timepoint.frequency(venn, complete, digits)
             for timepoint in self.timepoints()
         ]
 
     def mean(self, venn=True, complete=False, frequency=False, digits=2):
+        """
+
+        Parameters
+        ----------
+        venn : bool
+            If True returns populations formatted for the venn3 package.
+        complete : bool
+            If False the triple negative population is removed.
+        frequency : bool
+            If True the frequency with respect to CD8 positive cells is calculated.
+        digits : int
+            Number of decimal places to be rounded to.
+
+        Returns
+        -------
+        list[tuple[float]]
+            List of mean values for each timepoint in the experiment.
+        """
         return [
             timepoint.mean(
                 venn=venn, complete=complete, frequency=frequency, digits=digits
@@ -302,6 +531,22 @@ class Experiment:
     def venn_plot(
         self, file_name, mean_only=False, frequency=True, labels=True, digits=2
     ):
+        """
+        Generate and save as a PDF a venn diagram plot of the experiment.
+
+        Parameters
+        ----------
+        file_name : str
+            Name of the file to save the plot to.
+        mean_only : bool
+            If True only the mean values will be plotted.
+        frequency : bool
+            If True the frequency with respect to CD8 positive cells is calculated.
+        labels : bool
+            If False the number labels for each subset will not be plotted.
+        digits : int
+            Number of decimal places to be rounded to.
+        """
 
         height = self._shape[0] + 1
         if mean_only:
@@ -368,6 +613,16 @@ class Experiment:
         plt.close("all")
 
     def slope_plot(self, filename, zeroline=True):
+        """
+        Generate and save as a PDF a plot of all the slopes from the primary to memory, and memory to challenge timepoints.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the file to save the plot to.
+        zeroline : bool
+            If True the line y=0 is plotted on all graphs except the triple negative one.
+        """
 
         height = 14
         sup_title_size = 80
@@ -404,13 +659,18 @@ class Experiment:
 
 def _venn_plot_options(ax, labels, label_size, number_size):
     """
+    Set the parameters of ``ax`` to the desired values.
 
     Parameters
     ----------
     ax : matplotlib_venn._common.VennDiagram
+        VennDiagram for which the parameters will be set.
     labels : bool
+        If False the number labels for each subset will not be plotted.
     label_size : int
+        Font size of the set labels.
     number_size : int
+        Font size of the number labels.
     """
 
     colours = [
@@ -443,6 +703,25 @@ def _venn_plot_options(ax, labels, label_size, number_size):
 
 
 def _slope_plot_array(ax, y_lims, zeroline, fontsize):
+    """
+    Creates the array of subplots from the array of subfigures for the slope plots.
+
+    Parameters
+    ----------
+    ax : numpy.ndarray
+        Array of matplotlib.figure.SubFigure objects.
+    y_lims : list[float]
+        List of the y axis maximum of the tetramer positive plots, the minimum and the maximum of the triple negative plot.
+    zeroline : bool
+        If True the line y=0 is plotted on all graphs except the triple negative one.
+    fontsize : int
+        Font size of the plot.
+
+    Returns
+    -------
+    fig_list : numpy.ndarray
+        Array of subplots for the slope plots.
+    """
 
     patch_names = [
         "WT",
@@ -498,6 +777,24 @@ def _slope_plot_array(ax, y_lims, zeroline, fontsize):
 
 
 def _slope_plot(ax, means, row, col, fontsize, digits=2):
+    """
+    Plot the current slope plot on ``ax``.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes._subplots.AxesSubplot
+        Subplot in which the plot will be drawn.
+    means : list[tuple[float]]
+        List of mean values for each timepoint in the experiment.
+    row : int
+        Row of the position of the plot.
+    col : int
+        Column of the position of the plot.
+    fontsize : int
+        Font size of the plot.
+    digits : int
+        Number of decimal places to be rounded to.
+    """
 
     times = [10, 70, 90]
 
@@ -797,7 +1094,7 @@ def data_extraction(  # RETURNS EXPERIMENT
     )
 
     if standard_names is not None:
-        current_experiment.update_names(standard_names)
+        current_experiment.change_names(standard_names)
 
     return current_experiment
 
@@ -1163,7 +1460,7 @@ def stats_dataframe_infection(full_data, columns, complete=False):
     columns : list[str]
         List of names of the columns of the data.
     complete : bool
-        Consider only challenge timepoint data if false.
+        Consider only challenge timepoint data if False.
 
     Returns
     -------
