@@ -8,11 +8,11 @@ WT <- read.csv("WT.csv")
 T8A <- read.csv("T8A.csv")
 N3A <- read.csv("N3A.csv")
 ```
-```{r Loading frequencies}
-
-WTf <- read.csv("WT-f.csv")
-T8Af <- read.csv("T8A-f.csv")
-N3Af <- read.csv("N3A-f.csv")
+```{r Lists}
+time_names <- list("Primary", "Memory", "WT challenge", "T8A challenge", "N3A challenge")
+time_file_names <- list("P", "M", "WT", "T8A", "N3A")
+cd45 <- list("Circ", "Res", "Circ", "Res")
+organ <- list("S", "S", "L", "L")
 ```
 ```{r WT priming absolute numbers}
 
@@ -33,35 +33,18 @@ tukeyWTN3A <- TukeyHSD(aovWTN3A, ordered=TRUE, conf.level=0.95)
 ```
 ```{r WT priming frequencies}
 
-WTPf <- stack(WTf[WTf$Challenge == "Primary",], select=-Challenge)
-aovWTPf <- aov(values ~ ind, WTPf)
-tukeyWTPf <- TukeyHSD(aovWTPf, ordered=TRUE, conf.level=0.95)
-# write.csv(as.data.frame(tukeyWTPf[1]), "ANOVA/Tukey-WT-P.csv")
-# plot(tukeyWTPf , las=1 , col="green")
+file_names <- list("WT-S-Circ-f.csv", "WT-S-Res-f.csv", "WT-L-Circ-f.csv", "WT-L-Res-f.csv")
 
-WTMf <- stack(WTf[WTf$Challenge == "Memory",], select=-Challenge)
-aovWTMf <- aov(values ~ ind, WTMf)
-tukeyWTMf <- TukeyHSD(aovWTMf, ordered=TRUE, conf.level=0.95)
-# write.csv(as.data.frame(tukeyWTMf[1]), "ANOVA/Tukey-WT-M.csv")
-# plot(tukeyWTMf , las=1 , col="green")
+for (file_index in 1:4){
+  Data <- read.csv(file_names[[file_index]])
 
-WTWTf <- stack(WTf[WTf$Challenge == "WT",], select=-Challenge)
-aovWTWTf <- aov(values ~ ind, WTWTf)
-tukeyWTWTf <- TukeyHSD(aovWTWTf, ordered=TRUE, conf.level=0.95)
-# write.csv(as.data.frame(tukeyWTWTf[1]), "ANOVA/Tukey-WT-WT.csv")
-# plot(tukeyWTWTf , las=1 , col="green")
-
-WTT8Af <- stack(WTf[WTf$Challenge == "T8A",], select=-Challenge)
-aovWTT8Af <- aov(values ~ ind, WTT8Af)
-tukeyWTT8Af <- TukeyHSD(aovWTT8Af, ordered=TRUE, conf.level=0.95)
-# write.csv(as.data.frame(tukeyWTT8Af[1]), "ANOVA/Tukey-WT-T8A.csv")
-# plot(tukeyWTT8Af , las=1 , col="green")
-
-WTN3Af <- stack(WTf[WTf$Challenge == "N3A",], select=-Challenge)
-aovWTN3Af <- aov(values ~ ind, WTN3Af)
-tukeyWTN3Af <- TukeyHSD(aovWTN3Af, ordered=TRUE, conf.level=0.95)
-# write.csv(as.data.frame(tukeyWTN3Af[1]), "ANOVA/Tukey-WT-N3A.csv")
-# plot(tukeyWTN3Af , las=1 , col="green")
+  for (time_index in 1:5){
+    Timepoint <- stack(Data[Data$Challenge == time_names[time_index],], select=-Challenge)
+    aovTimepoint <- aov(values ~ ind, Timepoint)
+    tukeyTimepoint <- TukeyHSD(aovTimepoint, ordered=TRUE, conf.level=0.95)
+    write.csv(as.data.frame(tukeyTimepoint[1]), paste0("ANOVA/WT/Tukey-WT-",time_file_names[[time_index]],"-",organ[[file_index]],"-",cd45[[file_index]],".csv"))
+  }
+}
 ```
 ```{r T8A priming absolute numbers}
 
@@ -82,35 +65,18 @@ tukeyT8AN3A <- TukeyHSD(aovT8AN3A, ordered=TRUE, conf.level=0.95)
 ```
 ```{r T8A priming frequencies}
 
-T8APf <- stack(T8Af[T8Af$Challenge == "Primary",], select=-Challenge)
-aovT8APf <- aov(values ~ ind, T8APf)
-tukeyT8APf <- TukeyHSD(aovT8APf, ordered=TRUE, conf.level=0.95)
-write.csv(as.data.frame(tukeyT8APf[1]), "ANOVA/Tukey-T8A-P.csv")
-# plot(tukeyT8APf , las=1 , col="green")
+file_names <- list("T8A-S-Circ-f.csv", "T8A-S-Res-f.csv", "T8A-L-Circ-f.csv", "T8A-L-Res-f.csv")
 
-T8AMf <- stack(T8Af[T8Af$Challenge == "Memory",], select=-Challenge)
-aovT8AMf <- aov(values ~ ind, T8AMf)
-tukeyT8AMf <- TukeyHSD(aovT8AMf, ordered=TRUE, conf.level=0.95)
-write.csv(as.data.frame(tukeyT8AMf[1]), "ANOVA/Tukey-T8A-M.csv")
-# plot(tukeyT8APf , las=1 , col="green")
+for (file_index in 1:4){
+  Data <- read.csv(file_names[[file_index]])
 
-T8AWTf <- stack(T8Af[T8Af$Challenge == "WT",], select=-Challenge)
-aovT8AWTf <- aov(values ~ ind, T8AWTf)
-tukeyT8AWTf <- TukeyHSD(aovT8AWTf, ordered=TRUE, conf.level=0.95)
-write.csv(as.data.frame(tukeyT8AWTf[1]), "ANOVA/Tukey-T8A-WT.csv")
-# plot(tukeyT8AWTf , las=1 , col="green")
-
-T8AT8Af <- stack(T8Af[T8Af$Challenge == "T8A",], select=-Challenge)
-aovT8AT8Af <- aov(values ~ ind, T8AT8Af)
-tukeyT8AT8Af <- TukeyHSD(aovT8AT8Af, ordered=TRUE, conf.level=0.95)
-write.csv(as.data.frame(tukeyT8AT8Af[1]), "ANOVA/Tukey-T8A-T8A.csv")
-# plot(tukeyT8AT8Af , las=1 , col="green")
-
-T8AN3Af <- stack(T8Af[T8Af$Challenge == "N3A",], select=-Challenge)
-aovT8AN3Af <- aov(values ~ ind, T8AN3Af)
-tukeyT8AN3Af <- TukeyHSD(aovT8AN3Af, ordered=TRUE, conf.level=0.95)
-write.csv(as.data.frame(tukeyT8AN3Af[1]), "ANOVA/Tukey-T8A-N3A.csv")
-# plot(tukeyT8AN3Af , las=1 , col="green")
+  for (time_index in 1:5){
+    Timepoint <- stack(Data[Data$Challenge == time_names[time_index],], select=-Challenge)
+    aovTimepoint <- aov(values ~ ind, Timepoint)
+    tukeyTimepoint <- TukeyHSD(aovTimepoint, ordered=TRUE, conf.level=0.95)
+    write.csv(as.data.frame(tukeyTimepoint[1]), paste0("ANOVA/T8A/Tukey-T8A-",time_file_names[[time_index]],"-",organ[[file_index]],"-",cd45[[file_index]],".csv"))
+  }
+}
 ```
 ```{r N3A priming absolute numbers}
 
@@ -131,33 +97,16 @@ tukeyN3AN3A <- TukeyHSD(aovN3AN3A, ordered=TRUE, conf.level=0.95)
 ```
 ```{r N3A priming frequencies}
 
-N3APf <- stack(N3Af[N3Af$Challenge == "Primary",], select=-Challenge)
-aovN3APf <- aov(values ~ ind, N3APf)
-tukeyN3APf <- TukeyHSD(aovN3APf, ordered=TRUE, conf.level=0.95)
-write.csv(as.data.frame(tukeyN3APf[1]), "ANOVA/Tukey-N3A-P.csv")
-# plot(tukeyN3APf , las=1 , col="green")
+file_names <- list("N3A-S-Circ-f.csv", "N3A-S-Res-f.csv", "N3A-L-Circ-f.csv", "N3A-L-Res-f.csv")
 
-N3AMf <- stack(N3Af[N3Af$Challenge == "Memory",], select=-Challenge)
-aovN3AMf <- aov(values ~ ind, N3AMf)
-tukeyN3AMf <- TukeyHSD(aovN3AMf, ordered=TRUE, conf.level=0.95)
-write.csv(as.data.frame(tukeyN3AMf[1]), "ANOVA/Tukey-N3A-M.csv")
-# plot(tukeyN3AMf , las=1 , col="green")
+for (file_index in 1:4){
+  Data <- read.csv(file_names[[file_index]])
 
-N3AWTf <- stack(N3Af[N3Af$Challenge == "WT",], select=-Challenge)
-aovN3AWTf <- aov(values ~ ind, N3AWTf)
-tukeyN3AWTf <- TukeyHSD(aovN3AWTf, ordered=TRUE, conf.level=0.95)
-write.csv(as.data.frame(tukeyN3AWTf[1]), "ANOVA/Tukey-N3A-WT.csv")
-# plot(tukeyN3AWTf , las=1 , col="green")
-
-N3AT8Af <- stack(N3Af[N3Af$Challenge == "T8A",], select=-Challenge)
-aovN3AT8Af <- aov(values ~ ind, N3AT8Af)
-tukeyN3AT8Af <- TukeyHSD(aovN3AT8Af, ordered=TRUE, conf.level=0.95)
-write.csv(as.data.frame(tukeyN3AT8Af[1]), "ANOVA/Tukey-N3A-T8A.csv")
-# plot(tukeyN3AT8Af , las=1 , col="green")
-
-N3AN3Af <- stack(N3Af[N3Af$Challenge == "N3A",], select=-Challenge)
-aovN3AN3Af <- aov(values ~ ind, N3AN3Af)
-tukeyN3AN3Af <- TukeyHSD(aovN3AN3Af, ordered=TRUE, conf.level=0.95)
-write.csv(as.data.frame(tukeyN3AN3Af[1]), "ANOVA/Tukey-N3A-N3A.csv")
-# plot(tukeyN3AN3Af , las=1 , col="green")
+  for (time_index in 1:5){
+    Timepoint <- stack(Data[Data$Challenge == time_names[time_index],], select=-Challenge)
+    aovTimepoint <- aov(values ~ ind, Timepoint)
+    tukeyTimepoint <- TukeyHSD(aovTimepoint, ordered=TRUE, conf.level=0.95)
+    write.csv(as.data.frame(tukeyTimepoint[1]), paste0("ANOVA/N3A/Tukey-N3A-",time_file_names[[time_index]],"-",organ[[file_index]],"-",cd45[[file_index]],".csv"))
+  }
+}
 ```

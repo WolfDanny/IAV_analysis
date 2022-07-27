@@ -7,9 +7,11 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import seaborn as sns
 from matplotlib_venn import venn3, venn3_circles
 from plotly.subplots import make_subplots
 from scipy import stats
+from scipy.special import comb
 
 plt.rcParams.update({"text.usetex": True})
 plt.rcParams["text.latex.preamble"] = r"\usepackage{graphicx}"
@@ -158,7 +160,7 @@ class Mouse:
             return True
         return False
 
-    def frequency(self, venn=True, complete=False, digits=10):
+    def frequency(self, venn=True, complete=False, digits=None):
         """
         Returns a tuple of the frequencies of each population with respect to CD8 positive cells.
 
@@ -176,12 +178,21 @@ class Mouse:
         tuple[float]
             Tuple of the frequencies of each population.
         """
-        return tuple(
-            [
-                round(value / self.total_cells(), digits)
-                for value in self.cell_summary(venn=venn, complete=complete)
-            ]
-        )
+
+        if digits is None:
+            return tuple(
+                [
+                    value / self.total_cells()
+                    for value in self.cell_summary(venn=venn, complete=complete)
+                ]
+            )
+        else:
+            return tuple(
+                [
+                    round(value / self.total_cells(), digits)
+                    for value in self.cell_summary(venn=venn, complete=complete)
+                ]
+            )
 
 
 class Timepoint:
@@ -284,9 +295,9 @@ class Timepoint:
             self._mice.append(Mouse())
         self._num_empty_mice += number - self.total_mice()
 
-    def mean(self, venn=True, complete=False, frequency=True, digits=2):
+    def mean(self, venn=True, complete=False, frequency=True, digits=None):
         """
-        ``Mouse``
+        Returns the mean value of the populations in the timepoint.
 
         Parameters
         ----------
@@ -309,7 +320,9 @@ class Timepoint:
         for mouse in self._mice:
             if mouse:
                 if frequency:
-                    current_values = mouse.frequency(venn=venn, complete=complete)
+                    current_values = mouse.frequency(
+                        venn=venn, complete=complete, digits=digits
+                    )
                 else:
                     current_values = mouse.cell_summary(venn=venn, complete=complete)
                 for population, value in enumerate(current_values):
@@ -322,7 +335,7 @@ class Timepoint:
 
         return tuple(mean_values)
 
-    def frequency(self, venn=True, complete=False, digits=10):
+    def frequency(self, venn=True, complete=False, digits=None):
         """
         Returns a list of tuples containing the frequencies of each population for each mouse in the timepoint.
 
@@ -427,6 +440,14 @@ class Experiment:
         return tuple(self._shape)
 
     def num_timepoints(self):
+        """
+        Returns the number of timepoints in the experiment.
+
+        Returns
+        -------
+        int
+            Number of timepoints in the exeriment.
+        """
         return self._num_timepoints
 
     def add_timepoints(self, timepoints, timepoint_names):
@@ -480,8 +501,9 @@ class Experiment:
         """
         return [timepoint.total_mice() for timepoint in self.timepoints()]
 
-    def frequency(self, venn=True, complete=False, digits=10):
+    def frequency(self, venn=True, complete=False, digits=None):
         """
+        Returns the list of frequencies for each mouse in each timepoint.
 
         Parameters
         ----------
@@ -504,6 +526,7 @@ class Experiment:
 
     def mean(self, venn=True, complete=False, frequency=False, digits=2):
         """
+        Returns the list of means for each timepoint.
 
         Parameters
         ----------
@@ -527,6 +550,67 @@ class Experiment:
             )
             for timepoint in self.timepoints()
         ]
+
+    def to_df(self, filename=None, complete=True, frequency=True):
+        """
+        Returns a pandas DataFrame of the experiment data.
+
+        Parameters
+        ----------
+        filename : str
+            If given the data frame will be saved to filename.csv
+        complete : bool
+            If False only challenge timepoints are considered.
+        frequency : bool
+            If True the frequency with respect to CD8 positive cells is calculated.
+
+        Returns
+        -------
+        pandas.core.frame.DataFrame
+            DataFrame of the experiment data.
+        """
+
+        column_names = [
+            "Challenge",
+            "WT",
+            "T8A",
+            "N3A",
+            "WT+T8A",
+            "WT+N3A",
+            "T8A+N3A",
+            "TP",
+            "TN",
+        ]
+
+        challenge_indices = [0, 1, 2, 3, 4]
+        if not complete:
+            challenge_indices.pop(1)
+            challenge_indices.pop(0)
+
+        df_data = []
+
+        for timepoint_index, timepoint in enumerate(self.timepoints()):
+            if timepoint_index not in challenge_indices:
+                continue
+            for mouse_index, mouse in enumerate(timepoint.mouse_list()):
+                if mouse:
+                    row = [self.timepoint_names()[timepoint_index]]
+                    if frequency:
+                        for value in mouse.frequency(venn=False, complete=True):
+                            row.append(value)
+                    else:
+                        for value in mouse.cell_summary(
+                            venn=False, complete=True, ints=True
+                        ):
+                            row.append(value)
+                    df_data.append(deepcopy(row))
+
+        df = pd.DataFrame(df_data, columns=column_names)
+
+        if filename is not None:
+            df.to_csv(f"{filename}.csv", index=False)
+
+        return df
 
     def venn_plot(
         self, file_name, mean_only=False, frequency=True, labels=True, digits=2
@@ -655,6 +739,118 @@ class Experiment:
 
         fig.savefig(f"{filename}.pdf")
         plt.close("all")
+
+    def combined_correlation_plot(
+        self, filename=None, frequency=True, spearman=True, columns=None
+    ):
+        """
+        Generate a pairs plot of the correlations for all challenge infections of the experiment.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the file to save the plot to. If not given the plot is shown and not saved.
+        frequency : bool
+            If True the frequency with respect to CD8 positive cells is calculated.
+        spearman : bool
+            If True the Spearman rank correlations is used, otherwise the Pearson correlation is used.
+        columns : list[str]
+            List of populations to be plotted. If not given all populations are plotted.
+        """
+
+        if columns is None:
+            columns = [
+                "WT",
+                "T8A",
+                "N3A",
+                "WT+T8A",
+                "WT+N3A",
+                "T8A+N3A",
+                "TP",
+                "TN",
+            ]
+
+        grid = sns.PairGrid(
+            data=self.to_df(complete=False, frequency=frequency),
+            hue="Challenge",
+            hue_kws={"corr_position": [0, 1, 2]},
+            height=1.5,
+            diag_sharey=False,
+            vars=columns,
+        )
+        grid.map_diag(sns.kdeplot, warn_singular=False)
+        grid.map_lower(sns.scatterplot)
+        grid.map_upper(
+            _pairs_stats, comparisons=comb(8, 2), corr_total=3, spearman=spearman
+        )
+
+        for ax in grid.axes.flatten():
+            ax.ticklabel_format(style="sci", scilimits=(0, 0), axis="both")
+
+        grid.add_legend()
+        grid.fig.subplots_adjust(top=0.95)
+        grid.fig.suptitle(self.name)
+
+        if filename is not None:
+            grid.figure.savefig(f"{filename}.pdf")
+            plt.close("all")
+
+    def correlation_plot(
+        self, challenge, filename=None, frequency=True, spearman=True, columns=None
+    ):
+        """
+        Generate a pairs plot of the correlations for the ``challenge`` infection of the experiment.
+
+        Parameters
+        ----------
+        challenge : str
+            Challenge infection to be considered.
+        filename : str
+            Name of the file to save the plot to. If not given the plot is shown and not saved.
+        frequency : bool
+            If True the frequency with respect to CD8 positive cells is calculated.
+        spearman : bool
+            If True the Spearman rank correlations is used, otherwise the Pearson correlation is used.
+        columns : list[str]
+            List of populations to be plotted. If not given all populations are plotted.
+        """
+
+        if columns is None:
+            columns = [
+                "WT",
+                "T8A",
+                "N3A",
+                "WT+T8A",
+                "WT+N3A",
+                "T8A+N3A",
+                "TP",
+                "TN",
+            ]
+
+        grid = sns.PairGrid(
+            data=self.to_df(complete=False, frequency=frequency)[
+                (
+                    self.to_df(complete=False, frequency=frequency).Challenge
+                    == f"{challenge} challenge"
+                )
+            ],
+            height=1.5,
+            diag_sharey=False,
+            vars=columns,
+        )
+        grid.map_diag(sns.kdeplot, warn_singular=False)
+        grid.map_lower(sns.scatterplot)
+        grid.map_upper(_pairs_stats, comparisons=comb(8, 2), spearman=spearman)
+
+        for ax in grid.axes.flatten():
+            ax.ticklabel_format(style="sci", scilimits=(0, 0), axis="both")
+
+        grid.fig.subplots_adjust(top=0.95)
+        grid.fig.suptitle(" -- ".join([self.name, f"{challenge} challenge"]))
+
+        if filename is not None:
+            grid.figure.savefig(f"{filename}.pdf")
+            plt.close("all")
 
 
 def _venn_plot_options(ax, labels, label_size, number_size):
@@ -905,7 +1101,7 @@ def time_name_list(experiment, headers, cd45="+", filename=None):
     return names
 
 
-def _timepoint_extraction_challenge(  # RETURNS TIMEPOINT
+def _timepoint_extraction_challenge(
     organ,
     indices,
     time_names,
@@ -915,8 +1111,6 @@ def _timepoint_extraction_challenge(  # RETURNS TIMEPOINT
 
     current_timepoint = Timepoint()
     timepoint_mice = []
-    # data = []
-    # neg_data = []
 
     with open(filename, "r") as file:
         csvfile = csv.reader(file)
@@ -934,12 +1128,9 @@ def _timepoint_extraction_challenge(  # RETURNS TIMEPOINT
 
     current_timepoint.add_mice(timepoint_mice)
     return current_timepoint
-    #             data.append(tuple(values))
-    #             neg_data.append(tuple(neg_values))
-    # return data, neg_data
 
 
-def _timepoint_extraction_naive(  # RETURNS TIMEPOINT
+def _timepoint_extraction_naive(
     organ,
     indices,
     time_names,
@@ -949,7 +1140,6 @@ def _timepoint_extraction_naive(  # RETURNS TIMEPOINT
 ):
 
     non_zero_positions = {"WT": (0, 2, 4, 6), "T8A": (1, 2, 5, 6), "N3A": (3, 4, 5, 6)}
-    # data = []
     current_timepoint = Timepoint()
     timepoint_mice = []
 
@@ -969,8 +1159,6 @@ def _timepoint_extraction_naive(  # RETURNS TIMEPOINT
                 timepoint_mice.append(Mouse(*values))
     current_timepoint.add_mice(timepoint_mice)
     return current_timepoint
-    #             data.append(tuple(values))
-    # return data, None
 
 
 def timepoint_extraction(
@@ -1039,7 +1227,7 @@ def _column_index(filename, headers, data_type=None):
     return indices
 
 
-def data_extraction(  # RETURNS EXPERIMENT
+def data_extraction(
     experiment,
     organ,
     headers,
@@ -1437,11 +1625,6 @@ def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoint
                 timepoints[current_row],
             ]
 
-            # if current_row%2 == 0:
-            #    new_item.append('Triple negative')
-            # else:
-            #    new_item.append('Total')
-
             organised_data.append(deepcopy(new_item))
 
     total_dataframe = pd.DataFrame(organised_data, columns=columns)
@@ -1531,12 +1714,16 @@ def stats_dataframe_naive(data, columns):
     return organised_dataframe
 
 
-def pairs_stats(x, y, comparisons=1, corr_position=0, corr_total=1, **kwargs):
+def _pairs_stats(
+    x, y, comparisons=1, corr_position=0, corr_total=1, spearman=True, **kwargs
+):
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         try:
-            # corr, pvalue = stats.pearsonr(x, y)
-            corr, pvalue = stats.spearmanr(x, y)
+            if spearman:
+                corr, pvalue = stats.spearmanr(x, y)
+            else:
+                corr, pvalue = stats.pearsonr(x, y)
             corr_size = 15 + (1 - pvalue) * 15
 
             ast = ""
