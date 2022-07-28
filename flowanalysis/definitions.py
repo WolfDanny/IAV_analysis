@@ -1059,9 +1059,9 @@ def header_clipping(experiment, cd45="+", filename=None, check=False):
 
     if filename is None:
         filename = "NTW-CD45"
-        newname = f"{experiment}{cd45}.csv"
+        newname = f"Data/{experiment}{cd45}.csv"
     else:
-        newname = f"{experiment}-{filename}{cd45}.csv"
+        newname = f"Data/{experiment}-{filename}{cd45}.csv"
 
     with open(f"{experiment} priming/{filename}{cd45}.csv") as old_file:
         old_csv = csv.reader(old_file)
@@ -1086,9 +1086,9 @@ def header_clipping(experiment, cd45="+", filename=None, check=False):
 def time_name_list(experiment, headers, cd45="+", filename=None):
 
     if filename is None:
-        filename = f"{experiment}{cd45}.csv"
+        filename = f"Data/{experiment}{cd45}.csv"
     else:
-        filename = f"{experiment}-{filename}{cd45}.csv"
+        filename = f"Data/{experiment}-{filename}{cd45}.csv"
 
     names = []
 
@@ -1254,9 +1254,9 @@ def data_extraction(
         cd45_name = "resident"
 
     if filename is None:
-        filename = f"{experiment}{cd45}.csv"
+        filename = f"Data/{experiment}{cd45}.csv"
     else:
-        filename = f"{experiment}-{filename}{cd45}.csv"
+        filename = f"Data/{experiment}-{filename}{cd45}.csv"
 
     current_experiment = Experiment(
         " ".join([organ[0].upper() + organ[1:], cd45_name, "--", experiment, "primary"])
