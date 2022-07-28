@@ -1,9 +1,15 @@
-WT primary -- Spleen resident
+
+
+=====================================================================
+=====================================================================
+                  WT primary -- Spleen circulating
 
 Make sure to include these lines in the preamble of your TeX document
 
 \usepackage{tikz}
 \pgfmathsetmacro\r{1.5}
+=====================================================================
+=====================================================================
 
 
 
@@ -18,10 +24,10 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/2, 7/6, 7/4, 7/5, 7/3, 7/0, 7/1}{
+\foreach \i/\j in {7/2, 7/5, 7/6, 7/4, 7/3, 7/1, 7/0}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
-\foreach \i/\j in {1/2, 1/6, 1/4, 1/5, 1/3, 1/0}{
+\foreach \i/\j in {0/2, 0/5, 0/6, 0/4, 0/3}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
@@ -42,10 +48,10 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/5, 7/6, 7/2, 7/1, 7/4, 7/3, 7/0}{
+\foreach \i/\j in {7/5, 7/6, 7/2, 7/4, 7/1, 7/3, 7/0}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
-\foreach \i/\j in {0/5, 0/6, 0/2, 0/1, 0/4}{
+\foreach \i/\j in {0/5, 0/6, 0/2, 0/4, 0/1}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
@@ -66,8 +72,11 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/5, 7/1, 7/2, 7/4, 7/6, 7/3, 7/0}{
+\foreach \i/\j in {7/5, 7/2, 7/6, 7/4, 7/1, 7/0, 7/3}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
+}
+\foreach \i/\j in {3/5, 3/2}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
 	\node (p\i) at (c\i)[cell]{$\j$};
@@ -87,7 +96,7 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/5, 7/4, 7/2, 7/6, 7/1, 7/3, 7/0}{
+\foreach \i/\j in {7/5, 7/2, 7/4, 7/0, 7/6, 7/3, 7/1}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
@@ -108,7 +117,7 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/5, 7/1, 7/2, 7/3, 7/4, 7/0, 7/6}{
+\foreach \i/\j in {7/1, 7/5, 7/2, 7/3, 7/0, 7/4, 7/6}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
@@ -117,12 +126,18 @@ Make sure to include these lines in the preamble of your TeX document
 
 \end{tikzpicture}
 
-T8A primary -- Spleen resident
+
+
+=====================================================================
+=====================================================================
+                  T8A primary -- Spleen circulating
 
 Make sure to include these lines in the preamble of your TeX document
 
 \usepackage{tikz}
 \pgfmathsetmacro\r{1.5}
+=====================================================================
+=====================================================================
 
 
 
@@ -137,7 +152,7 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/5, 7/6, 7/4, 7/0, 7/2, 7/3, 7/1}{
+\foreach \i/\j in {7/5, 7/6, 7/2, 7/4, 7/0, 7/3, 7/1}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
@@ -161,7 +176,7 @@ Make sure to include these lines in the preamble of your TeX document
 \foreach \i/\j in {7/5, 7/6, 7/2, 7/4, 7/3, 7/1, 7/0}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
-\foreach \i/\j in {0/5, 0/6, 0/2}{
+\foreach \i/\j in {1/5, 0/5, 1/6, 0/6, 0/2, 0/4}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
@@ -182,10 +197,10 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/2, 7/5, 7/4, 7/6, 7/0, 7/3, 7/1}{
+\foreach \i/\j in {7/2, 7/5, 7/4, 7/6, 7/0, 7/1, 7/3}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
-\foreach \i/\j in {1/2, 1/5, 1/4, 1/6}{
+\foreach \i/\j in {3/2, 3/5, 3/4, 3/6, 3/0, 3/1}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
@@ -206,10 +221,10 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/6, 7/5, 7/4, 7/2, 7/0, 7/3, 7/1}{
+\foreach \i/\j in {7/4, 7/6, 7/2, 7/5, 7/0, 7/3, 7/1}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
-\foreach \i/\j in {1/6, 1/5, 1/4, 1/2, 1/0, 1/3}{
+\foreach \i/\j in {1/4, 1/6, 1/2, 1/5, 1/0, 1/3}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
@@ -230,10 +245,10 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/5, 7/6, 7/4, 7/2, 7/0, 7/3, 7/1}{
+\foreach \i/\j in {7/5, 7/6, 7/1, 7/4, 7/3, 7/0, 7/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
-\foreach \i/\j in {1/5, 1/6, 1/4, 1/2}{
+\foreach \i/\j in {2/5, 2/6, 2/1}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
@@ -242,12 +257,18 @@ Make sure to include these lines in the preamble of your TeX document
 
 \end{tikzpicture}
 
-N3A primary -- Spleen resident
+
+
+=====================================================================
+=====================================================================
+                  N3A primary -- Spleen circulating
 
 Make sure to include these lines in the preamble of your TeX document
 
 \usepackage{tikz}
 \pgfmathsetmacro\r{1.5}
+=====================================================================
+=====================================================================
 
 
 
@@ -262,7 +283,7 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/5, 7/1, 7/3, 7/2, 7/6, 7/4, 7/0}{
+\foreach \i/\j in {7/5, 7/6, 7/3, 7/2, 7/1, 7/4, 7/0}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
@@ -283,7 +304,7 @@ Make sure to include these lines in the preamble of your TeX document
 	\coordinate (c\i) at (\i*360/8:\r);
 }
 
-\foreach \i/\j in {7/1, 7/5, 7/3, 7/6, 7/4, 7/0, 7/2}{
+\foreach \i/\j in {7/3, 7/1, 7/5, 7/4, 7/6, 7/0, 7/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{

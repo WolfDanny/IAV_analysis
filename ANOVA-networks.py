@@ -110,19 +110,25 @@ def edge_loop(edges, dashed=False):
 
 for organ in organs:
     for residency in cd45:
-        with open(f"ANOVA/A-{organ[0]}-{residency[:3]}.tex", "w") as outfile:
+        with open(f"ANOVA/{organ}-{residency[:3]}.tex", "w") as outfile:
 
             for _, primary in enumerate(infections):
                 for timepoint_index, timepoint in enumerate(timepoints):
                     if timepoint_index == 0:
-                        outfile.write(
-                            f"{primary} primary -- {organ} {residency.lower()}\n\n"
+                        experiment_name = (
+                            f"{primary} primary -- {organ} {residency.lower()}"
                         )
+                        line = "=" * 69
+                        outfile.write(f"\n\n{line}\n")
+                        outfile.write(f"{line}\n")
+                        outfile.write(f"{experiment_name : ^69}\n\n")
                         outfile.write(
                             "Make sure to include these lines in the preamble of your TeX document\n\n"
                         )
                         outfile.write("\\usepackage{tikz}\n")
                         outfile.write("\\pgfmathsetmacro\\r{1.5}\n")
+                        outfile.write(f"{line}\n")
+                        outfile.write(f"{line}\n")
                         outfile.write("\n\n")
 
                     if timepoint_index < 2:
