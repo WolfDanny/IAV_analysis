@@ -33,7 +33,7 @@ tukeyWTN3A <- TukeyHSD(aovWTN3A, ordered=TRUE, conf.level=0.95)
 ```
 ```{r WT priming frequencies}
 
-file_names <- list("WT-S-Cir-f.csv", "WT-S-Res-f.csv", "WT-L-Cir-f.csv", "WT-L-Res-f.csv")
+file_names <- list("WT-S-Cir-F.csv", "WT-S-Res-F.csv", "WT-L-Cir-F.csv", "WT-L-Res-F.csv")
 
 for (file_index in 1:4){
   Data <- read.csv(file_names[[file_index]])
@@ -65,7 +65,7 @@ tukeyT8AN3A <- TukeyHSD(aovT8AN3A, ordered=TRUE, conf.level=0.95)
 ```
 ```{r T8A priming frequencies}
 
-file_names <- list("T8A-S-Cir-f.csv", "T8A-S-Res-f.csv", "T8A-L-Cir-f.csv", "T8A-L-Res-f.csv")
+file_names <- list("T8A-S-Cir-F.csv", "T8A-S-Res-F.csv", "T8A-L-Cir-F.csv", "T8A-L-Res-F.csv")
 
 for (file_index in 1:4){
   Data <- read.csv(file_names[[file_index]])
@@ -77,6 +77,23 @@ for (file_index in 1:4){
     write.csv(as.data.frame(tukeyTimepoint[1]), paste0("ANOVA/T8A/Tukey-",time_file_names[[time_index]],"-",organ[[file_index]],"-",cd45[[file_index]],".csv"))
   }
 }
+```
+```{r Tests}
+
+Data <- read.csv("T8A-S-Cir-F.csv")
+Timepoint <- stack(Data[Data$Challenge == "Memory",], select=-Challenge)
+aovTimepoint <- aov(values ~ ind, Timepoint)
+tukeyTimepoint <- TukeyHSD(aovTimepoint, ordered=TRUE, conf.level=0.95)
+
+Data2 <- read.csv("T8A-L-Res-F.csv")
+Timepoint2 <- stack(Data2[Data2$Challenge == "T8A challenge",], select=-Challenge)
+aovTimepoint2 <- aov(values ~ ind, Timepoint2)
+tukeyTimepoint2 <- TukeyHSD(aovTimepoint2, ordered=TRUE, conf.level=0.95)
+
+Data3 <- read.csv("WT-L-Cir-F.csv")
+Timepoint3 <- stack(Data3[Data3$Challenge == "Primary",], select=-Challenge)
+aovTimepoint3 <- aov(values ~ ind, Timepoint3)
+tukeyTimepoint3 <- TukeyHSD(aovTimepoint3, ordered=TRUE, conf.level=0.95)
 ```
 ```{r N3A priming absolute numbers}
 
@@ -97,7 +114,7 @@ tukeyN3AN3A <- TukeyHSD(aovN3AN3A, ordered=TRUE, conf.level=0.95)
 ```
 ```{r N3A priming frequencies}
 
-file_names <- list("N3A-S-Cir-f.csv", "N3A-S-Res-f.csv", "N3A-L-Cir-f.csv", "N3A-L-Res-f.csv")
+file_names <- list("N3A-S-Cir-F.csv", "N3A-S-Res-F.csv", "N3A-L-Cir-F.csv", "N3A-L-Res-F.csv")
 
 for (file_index in 1:4){
   Data <- read.csv(file_names[[file_index]])

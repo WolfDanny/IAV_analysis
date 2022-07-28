@@ -320,15 +320,18 @@ class Timepoint:
         for mouse in self._mice:
             if mouse:
                 if frequency:
-                    current_values = mouse.frequency(
-                        venn=venn, complete=complete, digits=digits
-                    )
+                    current_values = mouse.frequency(venn=venn, complete=complete)
                 else:
                     current_values = mouse.cell_summary(venn=venn, complete=complete)
                 for population, value in enumerate(current_values):
                     mean_values[population] += value
 
-        mean_values = [round(value / self._num_mice, digits) for value in mean_values]
+        if frequency:
+            mean_values = [value / self._num_mice for value in mean_values]
+        else:
+            mean_values = [
+                round(value / self._num_mice, digits) for value in mean_values
+            ]
 
         if not complete:
             mean_values.pop()
@@ -670,7 +673,7 @@ class Experiment:
                             continue
 
                         if frequency:
-                            current_data = mouse.frequency(digits=digits)
+                            current_data = mouse.frequency()
                         else:
                             current_data = mouse.cell_summary(ints=True)
 
@@ -681,8 +684,8 @@ class Experiment:
                         )
                         _venn_plot_options(current_plot, labels, 60, 50)
             if mean_only:
-                fig_list[current_col] = row_figs[current_col].subplots(1)
-                fig_list[current_col].set_title("Mean", fontsize=65, color="grey")
+                fig_list[0, current_col] = row_figs[current_col].subplots(1)
+                fig_list[0, current_col].set_title("Mean", fontsize=65, color="grey")
             else:
                 fig_list[-1][current_col] = row_figs[current_col][-1].subplots(1)
                 fig_list[-1][current_col].set_title("Mean", fontsize=65, color="grey")
@@ -693,6 +696,8 @@ class Experiment:
             )
             _venn_plot_options(means_plot, labels, 60, 50)
 
+        if mean_only:
+            file_name = "-".join([file_name, "Mean"])
         fig.savefig(f"{file_name}.pdf")
         plt.close("all")
 
