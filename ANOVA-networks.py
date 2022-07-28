@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 
 infections = ["WT", "T8A", "N3A"]
-timepoints = ["Primary", "Memory"]
+timepoints = ["Primary", "Memory", "WT", "T8A", "N3A"]
+organs = ["Spleen", "Lungs"]
+cd45 = ["Circulating", "Resident"]
 populations = {
     "WT": 0,
     "T8A": 1,
@@ -96,7 +98,7 @@ def edge_loop(edges, dashed=False):
         return (
             "\\foreach \\i/\\j in {"
             + ", ".join(edges)
-            + "}{\n\t\\draw[preaction={draw, line width=3pt, white}, thick, dashed] (c\\i) -- (c\\j);\n}\n"
+            + "}{\n\t\\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\\i) -- (c\\j);\n}\n"
         )
     else:
         return (
@@ -106,115 +108,79 @@ def edge_loop(edges, dashed=False):
         )
 
 
-with open("ANOVA/anova-tikz.tex", "w") as outfile:
-    outfile.write(
-        "Make sure to include these lines in the preamble of your TeX document\n\n"
-    )
-    outfile.write("\\usepackage{tikz}\n")
-    outfile.write("\\pgfmathsetmacro\\r{1.5}\n")
-    outfile.write("\n\n")
+for organ in organs:
+    for residency in cd45:
+        with open(f"ANOVA/A-{organ[0]}-{residency[:3]}.tex", "w") as outfile:
 
-    for _, primary in enumerate(infections):
-        for _, timepoint in enumerate(timepoints):
-            filename = f"ANOVA/Tukey-{primary}-{timepoint[0]}.csv"
+            for _, primary in enumerate(infections):
+                for timepoint_index, timepoint in enumerate(timepoints):
+                    if timepoint_index == 0:
+                        outfile.write(
+                            f"{primary} primary -- {organ} {residency.lower()}\n\n"
+                        )
+                        outfile.write(
+                            "Make sure to include these lines in the preamble of your TeX document\n\n"
+                        )
+                        outfile.write("\\usepackage{tikz}\n")
+                        outfile.write("\\pgfmathsetmacro\\r{1.5}\n")
+                        outfile.write("\n\n")
 
-            try:
-                with open(filename) as file:
-                    current_datafame = pd.read_csv(file)
+                    if timepoint_index < 2:
+                        filename = f"ANOVA/{primary}/Tukey-{timepoint[0]}-{organ[0]}-{residency[:3]}.csv"
+                    else:
+                        filename = f"ANOVA/{primary}/Tukey-{timepoint}-{organ[0]}-{residency[:3]}.csv"
 
-                # Reading and standardising names
-                current_names = [
-                    name.split("-") for name in current_datafame.iloc[:, 0]
-                ]
-                for row, current_pair in enumerate(current_names):
-                    for col, current_population in enumerate(current_pair):
-                        current_names[row][col] = current_population.replace(".", "+")
+                    try:
+                        with open(filename) as file:
+                            current_datafame = pd.read_csv(file)
 
-                # Reading data
-                current_data = current_datafame.iloc[:, 1:].to_numpy()
-
-                # Identifying significant differences
-                significant_differences = []
-                triple_negative_differences = []
-                for index, values in enumerate(current_data):
-                    if values[-1] < 0.05:
-                        current_nodes = [
-                            populations[current_names[index][i]] for i in range(2)
+                        # Reading and standardising names
+                        current_names = [
+                            name.split("-") for name in current_datafame.iloc[:, 0]
                         ]
-                        if 7 in current_nodes:
-                            triple_negative_differences.append(
-                                f"{current_nodes[0]}/{current_nodes[1]}"
-                            )
-                        else:
-                            significant_differences.append(
-                                f"{current_nodes[0]}/{current_nodes[1]}"
-                            )
+                        for row, current_pair in enumerate(current_names):
+                            for col, current_population in enumerate(current_pair):
+                                current_names[row][col] = current_population.replace(
+                                    ".", "+"
+                                )
 
-                outfile.write("\n\n========================================\n")
-                timepoint_name = " ".join([primary, timepoint])
-                outfile.write(f"{timepoint_name : ^40}\n")
-                outfile.write("========================================\n\n")
-                outfile.write("\\begin{tikzpicture}\n\n")
-                outfile.write(coordinate_loop(len(populations)))
-                outfile.write(edge_loop(triple_negative_differences, dashed=True))
-                if significant_differences:
-                    outfile.write(edge_loop(significant_differences))
-                outfile.write(node_loop(len(populations), numbered=True))
-                outfile.write("\\end{tikzpicture}\n\n")
+                        # Reading data
+                        current_data = current_datafame.iloc[:, 1:].to_numpy()
 
-                print(f"File for {primary} {timepoint} found")
-            except FileNotFoundError:
-                print(f"File for {primary} {timepoint} NOT found")
-                pass
+                        # Identifying significant differences
+                        significant_differences = []
+                        triple_negative_differences = []
+                        for index, values in enumerate(current_data):
+                            if values[-1] < 0.05:
+                                current_nodes = [
+                                    populations[current_names[index][i]]
+                                    for i in range(2)
+                                ]
+                                if 7 in current_nodes:
+                                    triple_negative_differences.append(
+                                        f"{current_nodes[0]}/{current_nodes[1]}"
+                                    )
+                                else:
+                                    significant_differences.append(
+                                        f"{current_nodes[0]}/{current_nodes[1]}"
+                                    )
 
-    for _, primary in enumerate(infections):
-        for _, challenge in enumerate(infections):
-            filename = f"ANOVA/Tukey-{primary}-{challenge}.csv"
+                        outfile.write("\n\n========================================\n")
+                        timepoint_name = " -- ".join([primary, timepoint])
+                        outfile.write(f"{timepoint_name : ^40}\n")
+                        outfile.write("========================================\n\n")
+                        outfile.write("\\begin{tikzpicture}\n\n")
+                        outfile.write(coordinate_loop(len(populations)))
+                        outfile.write(
+                            edge_loop(triple_negative_differences, dashed=True)
+                        )
+                        if significant_differences:
+                            outfile.write(edge_loop(significant_differences))
+                        outfile.write(node_loop(len(populations), numbered=True))
+                        outfile.write("\\end{tikzpicture}\n\n")
 
-            try:
-                with open(filename) as file:
-                    current_datafame = pd.read_csv(file)
-
-                # Reading and standardising names
-                current_names = [
-                    name.split("-") for name in current_datafame.iloc[:, 0]
-                ]
-                for row, current_pair in enumerate(current_names):
-                    for col, current_population in enumerate(current_pair):
-                        current_names[row][col] = current_population.replace(".", "+")
-
-                # Reading data
-                current_data = current_datafame.iloc[:, 1:].to_numpy()
-
-                # Identifying significant differences
-                significant_differences = []
-                triple_negative_differences = []
-                for index, values in enumerate(current_data):
-                    if values[-1] < 0.05:
-                        current_nodes = [
-                            populations[current_names[index][i]] for i in range(2)
-                        ]
-                        if 7 in current_nodes:
-                            triple_negative_differences.append(
-                                f"{current_nodes[0]}/{current_nodes[1]}"
-                            )
-                        else:
-                            significant_differences.append(
-                                f"{current_nodes[0]}/{current_nodes[1]}"
-                            )
-
-                outfile.write("\n\n========================================\n")
-                outfile.write(f"{primary : ^20}{challenge : ^20}\n")
-                outfile.write("========================================\n\n")
-                outfile.write("\\begin{tikzpicture}\n\n")
-                outfile.write(coordinate_loop(len(populations)))
-                outfile.write(edge_loop(triple_negative_differences, dashed=True))
-                if significant_differences:
-                    outfile.write(edge_loop(significant_differences))
-                outfile.write(node_loop(len(populations), numbered=True))
-                outfile.write("\\end{tikzpicture}\n\n")
-
-                print(f"File for {primary}-{challenge} found")
-            except FileNotFoundError:
-                print(f"File for {primary}-{challenge} NOT found")
-                pass
+                    except FileNotFoundError:
+                        print(
+                            f"File for {primary} {timepoint} {organ} {residency} NOT found"
+                        )
+                        pass
