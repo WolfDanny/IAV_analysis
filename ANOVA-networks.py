@@ -112,24 +112,29 @@ for organ in organs:
     for residency in cd45:
         with open(f"ANOVA/{organ}-{residency[:3]}.tex", "w") as outfile:
 
-            for _, primary in enumerate(infections):
+            experiment_name = f"{organ} {residency.lower()}"
+            line = "=" * 70
+            outfile.write(f"\n\n%{line}\n")
+            outfile.write(f"%{line}\n")
+            outfile.write(f"%{experiment_name : ^69}\n\n")
+            outfile.write(
+                "%Make sure to include these lines in the preamble of your TeX document\n\n"
+            )
+            outfile.write("%\\usepackage{tikz}\n")
+            outfile.write("%\\pgfmathsetmacro\\r{1.5}\n")
+            outfile.write(f"%{line}\n")
+            outfile.write(f"%{line}\n")
+            outfile.write("\n\n")
+
+            outfile.write(
+                "\\begin{figure}\n\\centering\n\\begin{tabular}{ccc|c|cccc}\n\n\\multirow{3}{*}{\\rotatebox{90}{\Large Primary infection}} &\n"
+            )
+
+            for primary_index, primary in enumerate(infections):
+                if primary_index != 0:
+                    outfile.write("\n & ")
+                outfile.write("\\rotatebox{90}{\phantom{nnnn}" + primary + "} &\n")
                 for timepoint_index, timepoint in enumerate(timepoints):
-                    if timepoint_index == 0:
-                        experiment_name = (
-                            f"{primary} primary -- {organ} {residency.lower()}"
-                        )
-                        line = "=" * 69
-                        outfile.write(f"\n\n{line}\n")
-                        outfile.write(f"{line}\n")
-                        outfile.write(f"{experiment_name : ^69}\n\n")
-                        outfile.write(
-                            "Make sure to include these lines in the preamble of your TeX document\n\n"
-                        )
-                        outfile.write("\\usepackage{tikz}\n")
-                        outfile.write("\\pgfmathsetmacro\\r{1.5}\n")
-                        outfile.write(f"{line}\n")
-                        outfile.write(f"{line}\n")
-                        outfile.write("\n\n")
 
                     if timepoint_index < 2:
                         filename = f"ANOVA/{primary}/Tukey-{timepoint[0]}-{organ[0]}-{residency[:3]}.csv"
@@ -171,10 +176,9 @@ for organ in organs:
                                         f"{current_nodes[0]}/{current_nodes[1]}"
                                     )
 
-                        outfile.write("\n\n========================================\n")
-                        timepoint_name = " -- ".join([primary, timepoint])
-                        outfile.write(f"{timepoint_name : ^40}\n")
-                        outfile.write("========================================\n\n")
+                        outfile.write(
+                            "\n\\scalebox{0.6}{ % " + f"{primary} -- {timepoint}\n"
+                        )
                         outfile.write("\\begin{tikzpicture}\n\n")
                         outfile.write(coordinate_loop(len(populations)))
                         outfile.write(
@@ -183,10 +187,34 @@ for organ in organs:
                         if significant_differences:
                             outfile.write(edge_loop(significant_differences))
                         outfile.write(node_loop(len(populations), numbered=True))
-                        outfile.write("\\end{tikzpicture}\n\n")
+                        outfile.write("\\end{tikzpicture}\n}\n&\n\n")
+                        if timepoint_index == 4:
+                            if primary_index == 0:
+                                outfile.write(
+                                    "\n\\multirow{3}{*}[3.5em]{ % [3.5em] is the fixup parameter for vertical alignment. # of units moved upwards\n"
+                                )
+                                outfile.write(
+                                    "\\scalebox{0.8}{\n\\begin{tikzpicture}\n\\matrix [row sep=5pt, draw=black, fill=black!5, rounded corners=15pt, thick] {\n"
+                                )
+                                for population, index in populations.items():
+                                    outfile.write(
+                                        f"\t\\node[cell, label=right:{population}]"
+                                        + "{"
+                                        + f"${index+1}$"
+                                        + "};\\\\\n"
+                                    )
+                                outfile.write("};\n\end{tikzpicture}\n}\n}\n")
+                            outfile.write("\\\\\n")
 
                     except FileNotFoundError:
                         print(
                             f"File for {primary} {timepoint} {organ} {residency} NOT found"
                         )
                         pass
+
+            outfile.write(
+                "\n & & Primary & Memory & WT challenge & T8A challenge & N3A challenge & \\\\\n"
+            )
+            outfile.write(" & & \\multicolumn{5}{c}{\\Large Timepoint} & \\\\\n")
+            outfile.write("\\end{tabular}")
+            outfile.write("\\end{figure}")

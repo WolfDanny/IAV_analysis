@@ -295,7 +295,7 @@ class Timepoint:
             self._mice.append(Mouse())
         self._num_empty_mice += number - self.total_mice()
 
-    def mean(self, venn=True, complete=False, frequency=True, digits=None):
+    def mean(self, venn=True, complete=False, frequency=True, digits=5):
         """
         Returns the mean value of the populations in the timepoint.
 
@@ -554,18 +554,22 @@ class Experiment:
             for timepoint in self.timepoints()
         ]
 
-    def to_df(self, filename=None, complete=True, frequency=True):
+    def to_df(
+        self, file_name=None, complete=True, frequency=True, primary_baseline=False
+    ):
         """
         Returns a pandas DataFrame of the experiment data.
 
         Parameters
         ----------
-        filename : str
-            If given the data frame will be saved to filename.csv
+        file_name : str
+            If given the data frame will be saved to file_name.csv
         complete : bool
             If False only challenge timepoints are considered.
         frequency : bool
             If True the frequency with respect to CD8 positive cells is calculated.
+        primary_baseline : bool
+            If True the difference to the mean of the primary challenge is considered.
 
         Returns
         -------
@@ -595,6 +599,7 @@ class Experiment:
         for timepoint_index, timepoint in enumerate(self.timepoints()):
             if timepoint_index not in challenge_indices:
                 continue
+
             for mouse_index, mouse in enumerate(timepoint.mouse_list()):
                 if mouse:
                     row = [self.timepoint_names()[timepoint_index]]
@@ -608,10 +613,27 @@ class Experiment:
                             row.append(value)
                     df_data.append(deepcopy(row))
 
+        if primary_baseline:
+            primary_mean = self.timepoints()[0].mean(
+                venn=False, complete=True, frequency=frequency
+            )
+
+            for row_index, row in enumerate(df_data):
+                df_data[row_index] = tuple(
+                    [
+                        value - primary_mean[column_index - 1]
+                        if column_index > 0
+                        else value
+                        for column_index, value in enumerate(row)
+                    ]
+                )
+
         df = pd.DataFrame(df_data, columns=column_names)
 
-        if filename is not None:
-            df.to_csv(f"{filename}.csv", index=False)
+        if file_name is not None:
+            if primary_baseline:
+                file_name = "-".join([file_name, "Baseline"])
+            df.to_csv(f"{file_name}.csv", index=False)
 
         return df
 
@@ -701,13 +723,13 @@ class Experiment:
         fig.savefig(f"{file_name}.pdf")
         plt.close("all")
 
-    def slope_plot(self, filename, zeroline=True):
+    def slope_plot(self, file_name, zeroline=True):
         """
         Generate and save as a PDF a plot of all the slopes from the primary to memory, and memory to challenge timepoints.
 
         Parameters
         ----------
-        filename : str
+        file_name : str
             Name of the file to save the plot to.
         zeroline : bool
             If True the line y=0 is plotted on all graphs except the triple negative one.
@@ -742,23 +764,33 @@ class Experiment:
                 )
             _slope_plot(fig_list[current_row, -1], means, current_row, -1, title_size)
 
-        fig.savefig(f"{filename}.pdf")
+        fig.savefig(f"{file_name}.pdf")
         plt.close("all")
 
     def combined_correlation_plot(
-        self, filename=None, frequency=True, spearman=True, columns=None
+        self,
+        file_name=None,
+        frequency=True,
+        spearman=True,
+        primary_baseline=False,
+        timepoints=None,
+        columns=None,
     ):
         """
         Generate a pairs plot of the correlations for all challenge infections of the experiment.
 
         Parameters
         ----------
-        filename : str
+        file_name : str
             Name of the file to save the plot to. If not given the plot is shown and not saved.
         frequency : bool
             If True the frequency with respect to CD8 positive cells is calculated.
         spearman : bool
             If True the Spearman rank correlations is used, otherwise the Pearson correlation is used.
+        primary_baseline : bool
+            If True the difference to the mean of the primary challenge is considered.
+        timepoints : list[str]
+            List of timepoints to be plotted. If not given only challenge timepoints are plotted.
         columns : list[str]
             List of populations to be plotted. If not given all populations are plotted.
         """
@@ -774,19 +806,28 @@ class Experiment:
                 "TP",
                 "TN",
             ]
+        if timepoints is None:
+            timepoints = ["WT challenge", "T8A challenge", "N3A challenge"]
+        num_timepoints = len(timepoints)
+
+        data = self.to_df(frequency=frequency, primary_baseline=primary_baseline)
 
         grid = sns.PairGrid(
-            data=self.to_df(complete=False, frequency=frequency),
+            data=data[(data.Challenge.isin(timepoints))],
             hue="Challenge",
-            hue_kws={"corr_position": [0, 1, 2]},
+            hue_kws={"corr_position": list(range(num_timepoints))},
             height=1.5,
             diag_sharey=False,
             vars=columns,
         )
         grid.map_diag(sns.kdeplot, warn_singular=False)
+        # grid.map_diag(sns.histplot)
         grid.map_lower(sns.scatterplot)
         grid.map_upper(
-            _pairs_stats, comparisons=comb(8, 2), corr_total=3, spearman=spearman
+            _pairs_stats,
+            comparisons=comb(8, 2),
+            corr_total=num_timepoints,
+            spearman=spearman,
         )
 
         for ax in grid.axes.flatten():
@@ -796,12 +837,20 @@ class Experiment:
         grid.fig.subplots_adjust(top=0.95)
         grid.fig.suptitle(self.name)
 
-        if filename is not None:
-            grid.figure.savefig(f"{filename}.pdf")
+        if file_name is not None:
+            if primary_baseline:
+                file_name = "-".join([file_name, "Baseline"])
+            grid.figure.savefig(f"{file_name}.pdf")
             plt.close("all")
 
     def correlation_plot(
-        self, challenge, filename=None, frequency=True, spearman=True, columns=None
+        self,
+        challenge,
+        file_name=None,
+        frequency=True,
+        spearman=True,
+        primary_baseline=False,
+        columns=None,
     ):
         """
         Generate a pairs plot of the correlations for the ``challenge`` infection of the experiment.
@@ -810,12 +859,14 @@ class Experiment:
         ----------
         challenge : str
             Challenge infection to be considered.
-        filename : str
+        file_name : str
             Name of the file to save the plot to. If not given the plot is shown and not saved.
         frequency : bool
             If True the frequency with respect to CD8 positive cells is calculated.
         spearman : bool
             If True the Spearman rank correlations is used, otherwise the Pearson correlation is used.
+        primary_baseline : bool
+            If True the difference to the mean of the primary challenge is considered.
         columns : list[str]
             List of populations to be plotted. If not given all populations are plotted.
         """
@@ -832,18 +883,16 @@ class Experiment:
                 "TN",
             ]
 
+        data = self.to_df(frequency=frequency, primary_baseline=primary_baseline)
+
         grid = sns.PairGrid(
-            data=self.to_df(complete=False, frequency=frequency)[
-                (
-                    self.to_df(complete=False, frequency=frequency).Challenge
-                    == f"{challenge} challenge"
-                )
-            ],
+            data=data[(data.Challenge == f"{challenge}")],
             height=1.5,
             diag_sharey=False,
             vars=columns,
         )
         grid.map_diag(sns.kdeplot, warn_singular=False)
+        # grid.map_diag(sns.histplot)
         grid.map_lower(sns.scatterplot)
         grid.map_upper(_pairs_stats, comparisons=comb(8, 2), spearman=spearman)
 
@@ -853,8 +902,10 @@ class Experiment:
         grid.fig.subplots_adjust(top=0.95)
         grid.fig.suptitle(" -- ".join([self.name, f"{challenge} challenge"]))
 
-        if filename is not None:
-            grid.figure.savefig(f"{filename}.pdf")
+        if file_name is not None:
+            if primary_baseline:
+                file_name = "-".join([file_name, "Baseline"])
+            grid.figure.savefig(f"{file_name}.pdf")
             plt.close("all")
 
 
@@ -1055,15 +1106,15 @@ def _slope_plot(ax, means, row, col, fontsize, digits=2):
     )
 
 
-def header_clipping(experiment, cd45="+", filename=None, check=False):
+def header_clipping(experiment, cd45="+", file_name=None, check=False):
 
-    if filename is None:
-        filename = "NTW-CD45"
+    if file_name is None:
+        file_name = "NTW-CD45"
         newname = f"Data/{experiment}{cd45}.csv"
     else:
-        newname = f"Data/{experiment}-{filename}{cd45}.csv"
+        newname = f"Data/{experiment}-{file_name}{cd45}.csv"
 
-    with open(f"{experiment} priming/{filename}{cd45}.csv") as old_file:
+    with open(f"{experiment} priming/{file_name}{cd45}.csv") as old_file:
         old_csv = csv.reader(old_file)
 
         with open(newname, "w") as newfile:
@@ -1083,16 +1134,16 @@ def header_clipping(experiment, cd45="+", filename=None, check=False):
                 print(new_names)
 
 
-def time_name_list(experiment, headers, cd45="+", filename=None):
+def time_name_list(experiment, headers, cd45="+", file_name=None):
 
-    if filename is None:
-        filename = f"Data/{experiment}{cd45}.csv"
+    if file_name is None:
+        file_name = f"Data/{experiment}{cd45}.csv"
     else:
-        filename = f"Data/{experiment}-{filename}{cd45}.csv"
+        file_name = f"Data/{experiment}-{file_name}{cd45}.csv"
 
     names = []
 
-    with open(filename, "r") as file:
+    with open(file_name, "r") as file:
         csvfile = csv.reader(file)
 
         header = True
@@ -1111,13 +1162,13 @@ def _timepoint_extraction_challenge(
     indices,
     time_names,
     time_name_index,
-    filename,
+    file_name,
 ):
 
     current_timepoint = Timepoint()
     timepoint_mice = []
 
-    with open(filename, "r") as file:
+    with open(file_name, "r") as file:
         csvfile = csv.reader(file)
         next(csvfile)
 
@@ -1141,14 +1192,14 @@ def _timepoint_extraction_naive(
     time_names,
     time_name_index,
     column,
-    filename,
+    file_name,
 ):
 
     non_zero_positions = {"WT": (0, 2, 4, 6), "T8A": (1, 2, 5, 6), "N3A": (3, 4, 5, 6)}
     current_timepoint = Timepoint()
     timepoint_mice = []
 
-    with open(filename, "r") as file:
+    with open(file_name, "r") as file:
         csvfile = csv.reader(file)
         next(csvfile)
 
@@ -1173,7 +1224,7 @@ def timepoint_extraction(
     time_name_index,
     data_type,
     column,
-    filename,
+    file_name,
 ):
 
     if data_type is None:
@@ -1182,7 +1233,7 @@ def timepoint_extraction(
             indices,
             time_names,
             time_name_index,
-            filename,
+            file_name,
         )
     elif data_type == "naive" and column is not None:
         return _timepoint_extraction_naive(
@@ -1191,14 +1242,14 @@ def timepoint_extraction(
             time_names,
             time_name_index,
             column,
-            filename,
+            file_name,
         )
 
 
-def _column_index(filename, headers, data_type=None):
+def _column_index(file_name, headers, data_type=None):
 
     if data_type is None:
-        with open(filename, "r") as file:
+        with open(file_name, "r") as file:
             csvfile = csv.reader(file)
             row = next(csvfile)
 
@@ -1215,7 +1266,7 @@ def _column_index(filename, headers, data_type=None):
                 row.index(headers[9]),  # Negative
             ]
     elif data_type == "naive":
-        with open(filename, "r") as file:
+        with open(file_name, "r") as file:
             csvfile = csv.reader(file)
             row = next(csvfile)
 
@@ -1242,7 +1293,7 @@ def data_extraction(
     timepoints=None,
     data_type=None,
     column=None,
-    filename=None,
+    file_name=None,
 ):
 
     if cd45 is None:
@@ -1253,10 +1304,10 @@ def data_extraction(
     else:
         cd45_name = "resident"
 
-    if filename is None:
-        filename = f"Data/{experiment}{cd45}.csv"
+    if file_name is None:
+        file_name = f"Data/{experiment}{cd45}.csv"
     else:
-        filename = f"Data/{experiment}-{filename}{cd45}.csv"
+        file_name = f"Data/{experiment}-{file_name}{cd45}.csv"
 
     current_experiment = Experiment(
         " ".join([organ[0].upper() + organ[1:], cd45_name, "--", experiment, "primary"])
@@ -1268,7 +1319,7 @@ def data_extraction(
     else:
         num_timepoints = timepoints
 
-    indices = _column_index(filename, headers, data_type=data_type)
+    indices = _column_index(file_name, headers, data_type=data_type)
 
     for current_time_name in range(num_timepoints):
         current_timepoint = timepoint_extraction(
@@ -1278,7 +1329,7 @@ def data_extraction(
             current_time_name,
             data_type,
             column,
-            filename,
+            file_name,
         )
         experiment_timepoints.append(current_timepoint)
 
@@ -1729,7 +1780,7 @@ def _pairs_stats(
                 corr, pvalue = stats.spearmanr(x, y)
             else:
                 corr, pvalue = stats.pearsonr(x, y)
-            corr_size = 15 + (1 - pvalue) * 15
+            corr_size = 15 + (1 - pvalue) * 10
 
             ast = ""
             if pvalue <= 0.01 / comparisons:

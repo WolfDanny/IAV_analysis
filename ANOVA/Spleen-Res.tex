@@ -1,23 +1,25 @@
 
 
-=====================================================================
-=====================================================================
-                    WT primary -- Spleen resident
+%======================================================================
+%======================================================================
+%                           Spleen resident
 
-Make sure to include these lines in the preamble of your TeX document
+%Make sure to include these lines in the preamble of your TeX document
 
-\usepackage{tikz}
-\pgfmathsetmacro\r{1.5}
-=====================================================================
-=====================================================================
-
-
+%\usepackage{tikz}
+%\pgfmathsetmacro\r{1.5}
+%======================================================================
+%======================================================================
 
 
-========================================
-             WT -- Primary
-========================================
+\begin{figure}
+\centering
+\begin{tabular}{ccc|c|cccc}
 
+\multirow{3}{*}{\rotatebox{90}{\Large Primary infection}} &
+\rotatebox{90}{\phantom{nnnn}WT} &
+
+\scalebox{0.6}{ % WT -- Primary
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -35,13 +37,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-              WT -- Memory
-========================================
-
+\scalebox{0.6}{ % WT -- Memory
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -59,13 +59,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-                WT -- WT
-========================================
-
+\scalebox{0.6}{ % WT -- WT
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -80,13 +78,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-               WT -- T8A
-========================================
-
+\scalebox{0.6}{ % WT -- T8A
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -101,13 +97,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-               WT -- N3A
-========================================
-
+\scalebox{0.6}{ % WT -- N3A
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -122,27 +116,31 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
+\multirow{3}{*}[3.5em]{ % [3.5em] is the fixup parameter for vertical alignment. # of units moved upwards
+\scalebox{0.8}{
+\begin{tikzpicture}
+\matrix [row sep=5pt, draw=black, fill=black!5, rounded corners=15pt, thick] {
+	\node[cell, label=right:WT]{$1$};\\
+	\node[cell, label=right:T8A]{$2$};\\
+	\node[cell, label=right:N3A]{$3$};\\
+	\node[cell, label=right:WT+T8A]{$4$};\\
+	\node[cell, label=right:WT+N3A]{$5$};\\
+	\node[cell, label=right:T8A+N3A]{$6$};\\
+	\node[cell, label=right:TP]{$7$};\\
+	\node[cell, label=right:TN]{$8$};\\
+};
+\end{tikzpicture}
+}
+}
+\\
 
-=====================================================================
-=====================================================================
-                   T8A primary -- Spleen resident
+ & \rotatebox{90}{\phantom{nnnn}T8A} &
 
-Make sure to include these lines in the preamble of your TeX document
-
-\usepackage{tikz}
-\pgfmathsetmacro\r{1.5}
-=====================================================================
-=====================================================================
-
-
-
-
-========================================
-             T8A -- Primary
-========================================
-
+\scalebox{0.6}{ % T8A -- Primary
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -157,13 +155,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-             T8A -- Memory
-========================================
-
+\scalebox{0.6}{ % T8A -- Memory
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -181,13 +177,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-               T8A -- WT
-========================================
-
+\scalebox{0.6}{ % T8A -- WT
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -205,13 +199,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-               T8A -- T8A
-========================================
-
+\scalebox{0.6}{ % T8A -- T8A
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -229,13 +221,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-               T8A -- N3A
-========================================
-
+\scalebox{0.6}{ % T8A -- N3A
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -253,27 +243,14 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
+\\
 
+ & \rotatebox{90}{\phantom{nnnn}N3A} &
 
-=====================================================================
-=====================================================================
-                   N3A primary -- Spleen resident
-
-Make sure to include these lines in the preamble of your TeX document
-
-\usepackage{tikz}
-\pgfmathsetmacro\r{1.5}
-=====================================================================
-=====================================================================
-
-
-
-
-========================================
-             N3A -- Primary
-========================================
-
+\scalebox{0.6}{ % N3A -- Primary
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -288,13 +265,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-             N3A -- Memory
-========================================
-
+\scalebox{0.6}{ % N3A -- Memory
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -309,13 +284,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-               N3A -- WT
-========================================
-
+\scalebox{0.6}{ % N3A -- WT
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -330,13 +303,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-               N3A -- T8A
-========================================
-
+\scalebox{0.6}{ % N3A -- T8A
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -351,13 +322,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
 
 
-
-========================================
-               N3A -- N3A
-========================================
-
+\scalebox{0.6}{ % N3A -- N3A
 \begin{tikzpicture}
 
 \foreach \i in {0,...,8}{
@@ -372,3 +341,11 @@ Make sure to include these lines in the preamble of your TeX document
 }
 
 \end{tikzpicture}
+}
+&
+
+\\
+
+ & & Primary & Memory & WT challenge & T8A challenge & N3A challenge & \\
+ & & \multicolumn{5}{c}{\Large Timepoint} & \\
+\end{tabular}\end{figure}
