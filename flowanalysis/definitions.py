@@ -554,9 +554,7 @@ class Experiment:
             for timepoint in self.timepoints()
         ]
 
-    def to_df(
-        self, file_name=None, complete=True, frequency=True, primary_baseline=False
-    ):
+    def to_df(self, file_name=None, complete=True, frequency=True):
         """
         Returns a pandas DataFrame of the experiment data.
 
@@ -568,8 +566,6 @@ class Experiment:
             If False only challenge timepoints are considered.
         frequency : bool
             If True the frequency with respect to CD8 positive cells is calculated.
-        primary_baseline : bool
-            If True the difference to the mean of the primary challenge is considered.
 
         Returns
         -------
@@ -613,26 +609,9 @@ class Experiment:
                             row.append(value)
                     df_data.append(deepcopy(row))
 
-        if primary_baseline:
-            primary_mean = self.timepoints()[0].mean(
-                venn=False, complete=True, frequency=frequency
-            )
-
-            for row_index, row in enumerate(df_data):
-                df_data[row_index] = tuple(
-                    [
-                        value - primary_mean[column_index - 1]
-                        if column_index > 0
-                        else value
-                        for column_index, value in enumerate(row)
-                    ]
-                )
-
         df = pd.DataFrame(df_data, columns=column_names)
 
         if file_name is not None:
-            if primary_baseline:
-                file_name = "-".join([file_name, "Baseline"])
             df.to_csv(f"{file_name}.csv", index=False)
 
         return df
@@ -772,7 +751,6 @@ class Experiment:
         file_name=None,
         frequency=True,
         spearman=True,
-        primary_baseline=False,
         timepoints=None,
         columns=None,
     ):
@@ -787,8 +765,6 @@ class Experiment:
             If True the frequency with respect to CD8 positive cells is calculated.
         spearman : bool
             If True the Spearman rank correlations is used, otherwise the Pearson correlation is used.
-        primary_baseline : bool
-            If True the difference to the mean of the primary challenge is considered.
         timepoints : list[str]
             List of timepoints to be plotted. If not given only challenge timepoints are plotted.
         columns : list[str]
@@ -810,7 +786,7 @@ class Experiment:
             timepoints = ["WT challenge", "T8A challenge", "N3A challenge"]
         num_timepoints = len(timepoints)
 
-        data = self.to_df(frequency=frequency, primary_baseline=primary_baseline)
+        data = self.to_df(frequency=frequency)
 
         grid = sns.PairGrid(
             data=data[(data.Challenge.isin(timepoints))],
@@ -838,8 +814,6 @@ class Experiment:
         grid.fig.suptitle(self.name)
 
         if file_name is not None:
-            if primary_baseline:
-                file_name = "-".join([file_name, "Baseline"])
             grid.figure.savefig(f"{file_name}.pdf")
             plt.close("all")
 
@@ -849,7 +823,6 @@ class Experiment:
         file_name=None,
         frequency=True,
         spearman=True,
-        primary_baseline=False,
         columns=None,
     ):
         """
@@ -865,8 +838,6 @@ class Experiment:
             If True the frequency with respect to CD8 positive cells is calculated.
         spearman : bool
             If True the Spearman rank correlations is used, otherwise the Pearson correlation is used.
-        primary_baseline : bool
-            If True the difference to the mean of the primary challenge is considered.
         columns : list[str]
             List of populations to be plotted. If not given all populations are plotted.
         """
@@ -883,7 +854,7 @@ class Experiment:
                 "TN",
             ]
 
-        data = self.to_df(frequency=frequency, primary_baseline=primary_baseline)
+        data = self.to_df(frequency=frequency)
 
         grid = sns.PairGrid(
             data=data[(data.Challenge == f"{challenge}")],
@@ -903,8 +874,6 @@ class Experiment:
         grid.fig.suptitle(" -- ".join([self.name, f"{challenge} challenge"]))
 
         if file_name is not None:
-            if primary_baseline:
-                file_name = "-".join([file_name, "Baseline"])
             grid.figure.savefig(f"{file_name}.pdf")
             plt.close("all")
 
