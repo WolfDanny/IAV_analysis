@@ -15,6 +15,7 @@ populations = {
     "TP": 6,
     "TN": 7,
 }
+standalone = True
 
 
 def coordinate_loop(nodes):
@@ -32,13 +33,7 @@ def coordinate_loop(nodes):
         LaTeX commands to generate evenly spaced nodes in a circle of radius r.
     """
 
-    return (
-        "\\foreach \\i in {0,...,"
-        + f"{nodes}"
-        + "}{\n\t\\coordinate (c\\i) at (\\i*360/"
-        + f"{nodes}"
-        + ":\\r);\n}\n\n"
-    )
+    return f"\\foreach \\i in {{0,...,{nodes}}}{{\n\t\\coordinate (c\\i) at (\\i*360/{nodes}:\\ranova);\n}}\n\n"
 
 
 def node_loop(nodes, numbered=False):
@@ -59,22 +54,14 @@ def node_loop(nodes, numbered=False):
     """
 
     if not numbered:
-        return (
-            "\\foreach \\i in {0,...,"
-            + f"{nodes}"
-            + "}{\n\t\\node (p\\i) at (c\\i)[cell]{};\n}\n\n"
-        )
+        return f"\\foreach \\i in {{0,...,{nodes}}}{{\n\t\\node (p\\i) at (c\\i)[cell]{{}};\n}}\n\n"
     else:
         node_names = []
         for i in range(nodes):
             node_names.append(f"{i}/{i+1}")
         node_names = ", ".join(node_names)
 
-        return (
-            "\\foreach \\i/\\j in {"
-            + f"{node_names}"
-            + "}{\n\t\\node (p\\i) at (c\\i)[cell]{$\\j$};\n}\n\n"
-        )
+        return f"\\foreach \\i/\\j in {{{node_names}}}{{\n\t\\node (p\\i) at (c\\i)[cell]{{$\\j$}};\n}}\n\n"
 
 
 def edge_loop(edges, dashed=False):
@@ -94,18 +81,12 @@ def edge_loop(edges, dashed=False):
         LaTeX commands to draw the specified edges.
     """
 
+    comma = ", "
+
     if dashed:
-        return (
-            "\\foreach \\i/\\j in {"
-            + ", ".join(edges)
-            + "}{\n\t\\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\\i) -- (c\\j);\n}\n"
-        )
+        return f"\\foreach \\i/\\j in {{{comma.join(edges)}}}{{\n\t\\draw[preaction={{draw, line width=3pt, white}}, thick, dashed, black!40] (c\\i) -- (c\\j);\n}}\n"
     else:
-        return (
-            "\\foreach \\i/\\j in {"
-            + ", ".join(edges)
-            + "}{\n\t\\draw[preaction={draw, line width=3pt, white}, thick] (c\\i) -- (c\\j);\n}\n"
-        )
+        return f"\\foreach \\i/\\j in {{{comma.join(edges)}}}{{\n\t\\draw[preaction={{draw, line width=3pt, white}}, thick] (c\\i) -- (c\\j);\n}}\n"
 
 
 for organ in organs:
@@ -121,13 +102,16 @@ for organ in organs:
                 "%Make sure to include these lines in the preamble of your TeX document\n\n"
             )
             outfile.write("%\\usepackage{tikz}\n")
-            outfile.write("%\\pgfmathsetmacro\\r{1.5}\n")
+            outfile.write("%\\pgfmathsetmacro\\ranova{1.5}\n")
             outfile.write(f"%{line}\n")
             outfile.write(f"%{line}\n")
             outfile.write("\n\n")
 
+            if standalone:
+                outfile.write("\\begin{figure}\n")
+
             outfile.write(
-                "\\begin{figure}\n\\centering\n\\begin{tabular}{ccc|c|cccc}\n\n\\multirow{3}{*}{\\rotatebox{90}{\Large Primary infection}} &\n"
+                "\\centering\n\\begin{tabular}{ccc|c|cccc}\n\n\\multirow{3}{*}{\\rotatebox{90}{\Large Primary infection}} &\n"
             )
 
             for primary_index, primary in enumerate(infections):
@@ -216,5 +200,6 @@ for organ in organs:
                 "\n & & Primary & Memory & WT challenge & T8A challenge & N3A challenge & \\\\\n"
             )
             outfile.write(" & & \\multicolumn{5}{c}{\\Large Timepoint} & \\\\\n")
-            outfile.write("\\end{tabular}")
-            outfile.write("\\end{figure}")
+            outfile.write("\\end{tabular}\n")
+            if standalone:
+                outfile.write("\\end{figure}\n")
