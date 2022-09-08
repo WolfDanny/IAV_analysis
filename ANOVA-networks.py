@@ -15,7 +15,7 @@ populations = {
     "TP": 6,
     "TN": 7,
 }
-standalone = True
+standalone = False
 
 
 def coordinate_loop(nodes):
@@ -33,10 +33,10 @@ def coordinate_loop(nodes):
         LaTeX commands to generate evenly spaced nodes in a circle of radius r.
     """
 
-    return f"\\foreach \\i in {{0,...,{nodes}}}{{\n\t\\coordinate (c\\i) at (\\i*360/{nodes}:\\ranova);\n}}\n\n"
+    return f"\\foreach \\i in {{0,...,{nodes}}}{{\n\t\\coordinate (c\\i) at (\\i*360/{nodes}:\\ranova);\n}}\n"
 
 
-def node_loop(nodes, numbered=False):
+def node_loop(nodes, edges, numbered=False):
     """
     Generates the LaTeX commands to draw ``nodes`` nodes in a set of pre-existing coordinates.
 
@@ -44,6 +44,8 @@ def node_loop(nodes, numbered=False):
     ----------
     nodes : int
         Number of nodes to be drawn.
+    edges : list[tuple[int]]
+        Edges in the figure.
     numbered : bool
         Numerical labeling of the nodes.
 
@@ -53,15 +55,32 @@ def node_loop(nodes, numbered=False):
         LaTeX commands to draw nodes in a set of coordinates.
     """
 
+    edges = [a for (a, b) in edges]
+
     if not numbered:
-        return f"\\foreach \\i in {{0,...,{nodes}}}{{\n\t\\node (p\\i) at (c\\i)[cell]{{}};\n}}\n\n"
+        return f"\\foreach \\i in {{0,...,{nodes}}}{{\n\t\\node (p\\i) at (c\\i)[ANOVAS]{{}};\n}}\n\n"
     else:
         node_names = []
+        large_node_names = []
         for i in range(nodes):
-            node_names.append(f"{i}/{i+1}")
+            if i not in edges:
+                node_names.append(f"{i}/{i+1}")
+            else:
+                large_node_names.append(f"{i}/{i+1}")
         node_names = ", ".join(node_names)
 
-        return f"\\foreach \\i/\\j in {{{node_names}}}{{\n\t\\node (p\\i) at (c\\i)[cell]{{$\\j$}};\n}}\n\n"
+        nodes_string = [
+            f"\\foreach \\i/\\j in {{{node_names}}}{{\n\t\\node (p\\i) at (c\\i)[ANOVAS]{{$\\j$}};\n}}\n"
+        ]
+        if large_node_names:
+            large_node_names = ", ".join(large_node_names)
+            nodes_string.append(
+                f"\\foreach \\i/\\j in {{{large_node_names}}}{{\n\t\\node (p\\i) at (c\\i)[ANOVAL]{{$\\j$}};\n}}\n\n"
+            )
+        else:
+            nodes_string.append("\n")
+
+        return "".join(nodes_string)
 
 
 def edge_loop(edges, dashed=False):
@@ -70,7 +89,7 @@ def edge_loop(edges, dashed=False):
 
     Parameters
     ----------
-    edges : list
+    edges : list[tuple[int]]
         List of edges to be drawn.
     dashed : bool
         Dashed edges.
@@ -81,12 +100,44 @@ def edge_loop(edges, dashed=False):
         LaTeX commands to draw the specified edges.
     """
 
+    edges = [f"{a}/{b}" for (a, b) in edges]
     comma = ", "
 
     if dashed:
         return f"\\foreach \\i/\\j in {{{comma.join(edges)}}}{{\n\t\\draw[preaction={{draw, line width=3pt, white}}, thick, dashed, black!40] (c\\i) -- (c\\j);\n}}\n"
     else:
         return f"\\foreach \\i/\\j in {{{comma.join(edges)}}}{{\n\t\\draw[preaction={{draw, line width=3pt, white}}, thick] (c\\i) -- (c\\j);\n}}\n"
+
+
+def tikz_legend(legend_populations):
+    """
+    Generates the LaTeX commands to draw the legend of the TikZ figure.
+
+    Parameters
+    ----------
+    legend_populations : dict
+        Dictionary of population names (keys) and indexes (values).
+
+    Returns
+    -------
+    str
+        LaTeX commands to draw the legend of the figure.
+    """
+
+    legend = [
+        "\n\\multirow{3}{*}[3.5em]{ % [3.5em] is the fixup parameter for vertical alignment. # of units moved upwards\n",
+        "\\scalebox{0.8}{\n\\begin{tikzpicture}\n\\matrix [row sep=5pt, draw=black, fill=black!5, rounded corners=15pt, thick] {\n",
+    ]
+    for legend_population, legend_index in legend_populations.items():
+        legend.append(
+            f"\t\\node[cell, label=right:{legend_population}]"
+            + "{"
+            + f"${legend_index+1}$"
+            + "};\\\\\n"
+        )
+    legend.append("};\n\\end{tikzpicture}\n}\n}\n")
+
+    return "".join(legend)
 
 
 for organ in organs:
@@ -103,6 +154,14 @@ for organ in organs:
             )
             outfile.write("%\\usepackage{tikz}\n")
             outfile.write("%\\pgfmathsetmacro\\ranova{1.5}\n")
+            outfile.write("%\\usepackage{multirow}\n")
+            outfile.write("%\\definecolor{ANOVAGreen}{RGB}{121,162,40}\n")
+            outfile.write(
+                "%\\tikzstyle{ANOVAS}=[circle,draw=ANOVAGreen,fill=ANOVAGreen!30,very thick,minimum size = 5pt]\n"
+            )
+            outfile.write(
+                "%\\tikzstyle{ANOVAL}=[circle,draw=ANOVAGreen,fill=ANOVAGreen!30,very thick,minimum size = 25pt]\n"
+            )
             outfile.write(f"%{line}\n")
             outfile.write(f"%{line}\n")
             outfile.write("\n\n")
@@ -153,11 +212,11 @@ for organ in organs:
                                 ]
                                 if 7 in current_nodes:
                                     triple_negative_differences.append(
-                                        f"{current_nodes[0]}/{current_nodes[1]}"
+                                        (current_nodes[0], current_nodes[1])
                                     )
                                 else:
                                     significant_differences.append(
-                                        f"{current_nodes[0]}/{current_nodes[1]}"
+                                        (current_nodes[0], current_nodes[1])
                                     )
 
                         outfile.write(
@@ -170,24 +229,15 @@ for organ in organs:
                         )
                         if significant_differences:
                             outfile.write(edge_loop(significant_differences))
-                        outfile.write(node_loop(len(populations), numbered=True))
+                        outfile.write(
+                            node_loop(
+                                len(populations), significant_differences, numbered=True
+                            )
+                        )
                         outfile.write("\\end{tikzpicture}\n}\n&\n\n")
                         if timepoint_index == 4:
                             if primary_index == 0:
-                                outfile.write(
-                                    "\n\\multirow{3}{*}[3.5em]{ % [3.5em] is the fixup parameter for vertical alignment. # of units moved upwards\n"
-                                )
-                                outfile.write(
-                                    "\\scalebox{0.8}{\n\\begin{tikzpicture}\n\\matrix [row sep=5pt, draw=black, fill=black!5, rounded corners=15pt, thick] {\n"
-                                )
-                                for population, index in populations.items():
-                                    outfile.write(
-                                        f"\t\\node[cell, label=right:{population}]"
-                                        + "{"
-                                        + f"${index+1}$"
-                                        + "};\\\\\n"
-                                    )
-                                outfile.write("};\n\end{tikzpicture}\n}\n}\n")
+                                outfile.write(tikz_legend(populations))
                             outfile.write("\\\\\n")
 
                     except FileNotFoundError:

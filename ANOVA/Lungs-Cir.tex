@@ -8,11 +8,14 @@
 
 %\usepackage{tikz}
 %\pgfmathsetmacro\ranova{1.5}
+%\usepackage{multirow}
+%\definecolor{ANOVAGreen}{RGB}{121,162,40}
+%\tikzstyle{ANOVAS}=[circle,draw=ANOVAGreen,fill=ANOVAGreen!30,very thick,minimum size = 5pt]
+%\tikzstyle{ANOVAL}=[circle,draw=ANOVAGreen,fill=ANOVAGreen!30,very thick,minimum size = 25pt]
 %======================================================================
 %======================================================================
 
 
-\begin{figure}
 \centering
 \begin{tabular}{ccc|c|cccc}
 
@@ -25,15 +28,17 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/5, 7/6, 7/1, 7/3, 7/4, 7/0, 7/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/5, 2/5, 2/6, 2/1, 2/3, 2/4}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
-\foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+\foreach \i/\j in {1/2, 3/4, 4/5, 5/6, 6/7, 7/8}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {0/1, 2/3}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
 }
 
 \end{tikzpicture}
@@ -47,15 +52,17 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/2, 7/5, 7/6, 7/3, 7/1, 7/4, 7/0}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/2, 0/5, 0/6, 0/3, 0/1, 0/4}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
-\foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+\foreach \i/\j in {1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {0/1}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
 }
 
 \end{tikzpicture}
@@ -69,15 +76,17 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/5, 7/6, 7/1, 7/2, 7/4, 7/0, 7/3}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {3/5, 3/6, 3/1, 3/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
-\foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+\foreach \i/\j in {0/1, 1/2, 2/3, 4/5, 5/6, 6/7, 7/8}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {3/4}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
 }
 
 \end{tikzpicture}
@@ -91,12 +100,11 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/4, 7/5, 7/0, 7/6, 7/3, 7/1, 7/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
 }
 
 \end{tikzpicture}
@@ -110,12 +118,11 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/5, 7/1, 7/3, 7/0, 7/2, 7/6, 7/4}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
 }
 
 \end{tikzpicture}
@@ -149,15 +156,17 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/4, 7/6, 7/5, 7/0, 7/2, 7/3, 7/1}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {1/4, 1/6, 1/5, 1/0, 1/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
-\foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+\foreach \i/\j in {0/1, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {1/2}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
 }
 
 \end{tikzpicture}
@@ -171,12 +180,11 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/5, 7/4, 7/6, 7/2, 7/1, 7/3, 7/0}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
 }
 
 \end{tikzpicture}
@@ -190,15 +198,17 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/5, 7/4, 7/6, 7/2, 7/0, 7/1, 7/3}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {3/5, 3/4, 3/6, 3/2, 3/0, 3/1}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
-\foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+\foreach \i/\j in {0/1, 1/2, 2/3, 4/5, 5/6, 6/7, 7/8}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {3/4}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
 }
 
 \end{tikzpicture}
@@ -212,12 +222,11 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/4, 7/0, 7/6, 7/3, 7/5, 7/2, 7/1}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
 }
 
 \end{tikzpicture}
@@ -231,12 +240,11 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/5, 7/6, 7/1, 7/0, 7/4, 7/3, 7/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
 }
 
 \end{tikzpicture}
@@ -253,15 +261,17 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/5, 7/1, 7/3, 7/6, 7/0, 7/4, 7/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {2/5, 2/1, 2/3, 2/6, 2/0, 2/4}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
-\foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+\foreach \i/\j in {0/1, 1/2, 3/4, 4/5, 5/6, 6/7, 7/8}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {2/3}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
 }
 
 \end{tikzpicture}
@@ -275,12 +285,11 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/6, 7/5, 7/4, 7/1, 7/0, 7/3, 7/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
 }
 
 \end{tikzpicture}
@@ -294,15 +303,17 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/5, 7/1, 7/0, 7/3, 7/6, 7/2, 7/4}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {4/5, 4/1}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
-\foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+\foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 5/6, 6/7, 7/8}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {4/5}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
 }
 
 \end{tikzpicture}
@@ -316,15 +327,17 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/4, 7/5, 7/6, 7/0, 7/1, 7/3, 7/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {2/4, 2/5, 2/6, 2/0, 2/1, 2/3}{
 	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
 }
-\foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+\foreach \i/\j in {0/1, 1/2, 3/4, 4/5, 5/6, 6/7, 7/8}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {2/3}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
 }
 
 \end{tikzpicture}
@@ -338,12 +351,11 @@
 \foreach \i in {0,...,8}{
 	\coordinate (c\i) at (\i*360/8:\ranova);
 }
-
 \foreach \i/\j in {7/5, 7/6, 7/1, 7/3, 7/0, 7/4, 7/2}{
 	\draw[preaction={draw, line width=3pt, white}, thick, dashed, black!40] (c\i) -- (c\j);
 }
 \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8}{
-	\node (p\i) at (c\i)[cell]{$\j$};
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
 }
 
 \end{tikzpicture}
@@ -355,4 +367,3 @@
  & & Primary & Memory & WT challenge & T8A challenge & N3A challenge & \\
  & & \multicolumn{5}{c}{\Large Timepoint} & \\
 \end{tabular}
-\end{figure}
