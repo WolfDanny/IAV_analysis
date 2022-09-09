@@ -196,7 +196,7 @@ class Mouse:
 
 
 class Timepoint:
-    """Class to represent a timepoint consisting of objects of the `Mouse` class"""
+    """Class to represent a timepoint consisting of objects of the ``Mouse`` class"""
 
     def __init__(self):
         """
@@ -365,7 +365,7 @@ class Timepoint:
 
 
 class Experiment:
-    """Class to represent and experiment consisting of objects of the `Timepoint` class"""
+    """Class to represent and experiment consisting of objects of the ``Timepoint`` class"""
 
     def __init__(self, name):
         """
@@ -815,6 +815,48 @@ class Experiment:
 
         if file_name is not None:
             grid.figure.savefig(f"{file_name}.pdf")
+            plt.close("all")
+
+    def correlation_heatmap(
+        self, timepoint, file_name=None, frequency=True, rotated=True
+    ):
+        """
+        Generate a Spearman rank correlation heatmap of ``timepoint``.
+
+        Parameters
+        ----------
+        timepoint : str
+            Timepoint to be considered.
+        file_name : str
+            Name of the file to save the plot to. If not given the plot is shown and not saved.
+        frequency : bool
+            If True the frequency with respect to CD8 positive cells is calculated.
+        rotated : bool
+            If True the labels on the x axis are rotated 45 degrees.
+        """
+
+        data = self.to_df(frequency=frequency)
+
+        h_map = sns.heatmap(
+            data[(data.Challenge == timepoint)].corr(method="spearman"),
+            vmin=-1,
+            vmax=1,
+            cmap=sns.diverging_palette(270, 10, s=90, sep=10, as_cmap=True),
+            annot=data[(data.Challenge == timepoint)]
+            .corr(method=_spearman_pvalue)
+            .applymap(_asterisk_significance, comparisons=comb(8, 2)),
+            fmt="",
+            annot_kws={"size": "xx-large"},
+        )
+        h_map.set_aspect("equal")
+
+        if rotated:
+            h_map.set_xticklabels(
+                h_map.get_xticklabels(), rotation=45, rotation_mode="anchor", ha="right"
+            )
+
+        if file_name is not None:
+            plt.savefig(f"{file_name}.pdf", bbox_inches="tight")
             plt.close("all")
 
     def correlation_plot(
@@ -1659,7 +1701,7 @@ def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoint
 
 def stats_dataframe_infection(full_data, columns, complete=False):
     """
-    Generates a data frame containing the data from `full_data` with column names given by `columns`.
+    Generates a data frame containing the data from ``full_data`` with column names given by ``columns``.
 
     Parameters
     ----------
@@ -1774,6 +1816,57 @@ def _pairs_stats(
         ha="center",
         fontsize=corr_size,
     )
+
+
+def _spearman_pvalue(x, y):
+    """
+    Calculates the p value of Spearman's rank correlation between ``x`` and ``y``.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        First set of values
+    y : np.ndarray
+        Second set of values.
+
+    Returns
+    -------
+    float
+        p value of Spearman's rank correlation between the values.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        try:
+            return stats.spearmanr(x, y)[1]
+        except stats.SpearmanRConstantInputWarning:
+            return 1.0
+
+
+def _asterisk_significance(pvalue, comparisons=None):
+    """
+    Transforms ``pvalue`` into the appropriate string of asterisks to represent the level of significance. When multiple comparisons are considered, the Bonferroni correction for ``comparisons`` comparisons is used.
+
+    Parameters
+    ----------
+    pvalue : float
+        p value to be considered
+    comparisons : int
+        number of comparisons.
+
+    Returns
+    -------
+    str
+        String of asterisks representing the level of significance. An empty string is returned when there is no significance.
+    """
+    if comparisons is None:
+        comparisons = 1
+
+    if pvalue <= 0.01 / comparisons:
+        return "${\\ast}{\\ast}$"
+    elif pvalue <= 0.05 / comparisons:
+        return "${\\ast}$"
+    else:
+        return ""
 
 
 def separate_data(data, primary, challenge, tetramer):
