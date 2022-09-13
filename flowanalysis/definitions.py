@@ -465,7 +465,7 @@ class Timepoint:
         cbar_ax : matplotlib.axes._subplots.AxesSubplot
             Axes in which to plot the colour bar, if None plotted in the currently active Axes.
         show : bool
-            If true the plot is displayed in place.
+            If true the plot is displayed.
         """
 
         data = self.to_df(frequency=frequency)
@@ -761,7 +761,13 @@ class Experiment:
         return df
 
     def venn_plot(
-        self, file_name, mean_only=False, frequency=True, labels=True, digits=2
+        self,
+        file_name=None,
+        mean_only=False,
+        frequency=True,
+        labels=True,
+        digits=2,
+        show=False,
     ):
         """
         Generate and save as a PDF a venn diagram plot of the experiment.
@@ -778,6 +784,8 @@ class Experiment:
             If False the number labels for each subset will not be plotted.
         digits : int
             Number of decimal places to be rounded to.
+        show : bool
+            If true the plot is displayed.
         """
 
         height = self._shape[0] + 1
@@ -841,12 +849,14 @@ class Experiment:
             )
             _venn_plot_options(means_plot, labels, 60, 50)
 
-        if mean_only:
+        if mean_only and file_name is not None:
             file_name = "-".join([file_name, "Mean"])
-        fig.savefig(f"{file_name}.pdf")
-        plt.close("all")
+        if file_name is not None:
+            fig.savefig(f"{file_name}.pdf")
+        if not show:
+            plt.close("all")
 
-    def slope_plot(self, file_name, zeroline=True):
+    def slope_plot(self, file_name=None, zeroline=True, show=False):
         """
         Generate and save as a PDF a plot of all the slopes from the primary to memory, and memory to challenge timepoints.
 
@@ -856,6 +866,8 @@ class Experiment:
             Name of the file to save the plot to.
         zeroline : bool
             If True the line y=0 is plotted on all graphs except the triple negative one.
+        show : bool
+            If true the plot is displayed.
         """
 
         height = 14
@@ -887,8 +899,10 @@ class Experiment:
                 )
             _slope_plot(fig_list[current_row, -1], means, current_row, -1, title_size)
 
-        fig.savefig(f"{file_name}.pdf")
-        plt.close("all")
+        if file_name is not None:
+            fig.savefig(f"{file_name}.pdf")
+        if not show:
+            plt.close("all")
 
     def combined_correlation_plot(
         self,
@@ -965,18 +979,20 @@ class Experiment:
         self, timepoints=None, file_name=None, frequency=True, rotated=True, show=False
     ):
         """
-        Generate a Spearman rank correlation heatmap of ``timepoint``.
+        Generate a Spearman rank correlation heatmap of the timepoints in ``timepoints``.
 
         Parameters
         ----------
         timepoints : list[int]
-            Timepoint to be considered.
+            Timepoint to be considered. If None all timepoints are considered
         file_name : str
             Name of the file to save the plot to. If not given the plot is shown and not saved.
         frequency : bool
             If True the frequency with respect to CD8 positive cells is calculated.
         rotated : bool
             If True the labels on the x axis are rotated 45 degrees.
+        show : bool
+            If true the plot is displayed.
         """
 
         if timepoints is None:
@@ -988,16 +1004,11 @@ class Experiment:
             figsize=((3 * len(timepoints)), 3 * 1.25), constrained_layout=True
         )
         fig.suptitle(self.name, fontsize=18)
-        # plt.subplots_adjust(top=0.9)
-        # lr_figs = fig.subfigures(1, 2, width_ratios=[(15 * len(timepoints)), 1], wspace=0)
         subfig_list = np.empty(1, dtype=object)
-        # cbar_list = np.empty(1, dtype=object)
 
         subfig_list[0] = fig.subplots(
             1, len(timepoints) + 1, gridspec_kw={"width_ratios": widths, "wspace": 0.1}
         )
-        # subfig_list[0] = lr_figs[0].subplots(1, len(timepoints))
-        # cbar_list[0] = lr_figs[1].subplots(1, 1)
 
         for timepoint_index, timepoint in enumerate(self.timepoints()):
             if timepoint_index not in timepoints:
@@ -1011,7 +1022,6 @@ class Experiment:
                     cbar_ax=subfig_list[0][-1],
                     show=show,
                 )
-                # timepoint.correlation_heatmap(frequency=frequency, rotated=rotated, ax=subfig_list[0][timepoints.index(timepoint_index)], cbar_ax=cbar_list[0], show=show)
             else:
                 timepoint.correlation_heatmap(
                     frequency=frequency,
