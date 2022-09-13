@@ -205,6 +205,7 @@ class Timepoint:
         self._mice = []
         self._num_mice = 0
         self._num_empty_mice = 0
+        self._name = None
 
     def __round__(self, n=None):
         return [round(mouse, n) for mouse in self._mice]
@@ -226,6 +227,17 @@ class Timepoint:
         """
         self._mice.append(mouse)
         self._num_mice += 1
+
+    def change_name(self, name):
+        """
+        Change the name of the timepoint.
+
+        Parameters
+        ----------
+        name : str
+            Name of the timepoint
+        """
+        self._name = name
 
     def mouse_list(self):
         """
@@ -363,6 +375,135 @@ class Timepoint:
             for mouse in self._mice
         ]
 
+    def to_df(self, file_name=None, frequency=True):
+        """
+        Returns a pandas DataFrame of the experiment data.
+
+        Parameters
+        ----------
+        file_name : str
+            If given the data frame will be saved to file_name.csv
+        frequency : bool
+            If True the frequency with respect to CD8 positive cells is calculated.
+
+        Returns
+        -------
+        pandas.core.frame.DataFrame
+            DataFrame of the experiment data.
+        """
+
+        column_names = [
+            "Challenge",
+            "WT",
+            "T8A",
+            "N3A",
+            "WT+T8A",
+            "WT+N3A",
+            "T8A+N3A",
+            "TP",
+            "TN",
+        ]
+
+        df_data = []
+
+        for mouse_index, mouse in enumerate(self._mice):
+            if mouse:
+                row = [self._name]
+                if frequency:
+                    for value in mouse.frequency(venn=False, complete=True):
+                        row.append(value)
+                else:
+                    for value in mouse.cell_summary(
+                        venn=False, complete=True, ints=True
+                    ):
+                        row.append(value)
+                df_data.append(deepcopy(row))
+
+        df = pd.DataFrame(df_data, columns=column_names)
+
+        if file_name is not None:
+            df.to_csv(f"{file_name}.csv", index=False)
+
+        return df
+
+    def correlation_heatmap(
+        self,
+        file_name=None,
+        frequency=True,
+        rotated=True,
+        title=True,
+        x_ticks=True,
+        y_ticks=True,
+        ax=None,
+        cbar=True,
+        cbar_ax=None,
+        show=False,
+    ):
+        """
+        Generate a Spearman rank correlation heatmap of ``timepoint``.
+
+        Parameters
+        ----------
+        timepoint : str
+            Timepoint to be considered.
+        file_name : str
+            Name of the file to save the plot to. If not given the plot is shown and not saved.
+        frequency : bool
+            If True the frequency with respect to CD8 positive cells is calculated.
+        rotated : bool
+            If True the labels on the x axis are rotated 45 degrees.
+        title : bool
+            If true the name of the timepoint is used as the title of the plot.
+        x_ticks : bool
+            If true the x tick labels are plotted.
+        y_ticks : bool
+            If true the y tick labels are plotted.
+        ax : matplotlib.axes._subplots.AxesSubplot
+            Axes in which to plot, if None plotted in the currently active Axes.
+        cbar : bool
+            If true the colour bar is plotted.
+        cbar_ax : matplotlib.axes._subplots.AxesSubplot
+            Axes in which to plot the colour bar, if None plotted in the currently active Axes.
+        show : bool
+            If true the plot is displayed in place.
+        """
+
+        data = self.to_df(frequency=frequency)
+
+        h_map = sns.heatmap(
+            data.corr(method="spearman"),
+            vmin=-1,
+            vmax=1,
+            cmap=sns.diverging_palette(270, 10, s=90, sep=10, as_cmap=True),
+            annot=data.corr(method=_spearman_pvalue).applymap(
+                _asterisk_significance, comparisons=comb(8, 2)
+            ),
+            fmt="",
+            annot_kws={"size": "xx-large"},
+            cbar=cbar,
+            xticklabels=x_ticks,
+            yticklabels=y_ticks,
+            ax=ax,
+            cbar_ax=cbar_ax,
+            cbar_kws={"shrink": 0.7},
+        )
+        h_map.set_aspect("equal")
+
+        if rotated:
+            h_map.set_xticklabels(
+                h_map.get_xticklabels(), rotation=45, rotation_mode="anchor", ha="right"
+            )
+
+        if title and ax is not None:
+            ax.set_title(self._name, fontsize=15)
+        elif title:
+            plt.gca().set_title(self._name, fontsize=15)
+
+        if file_name is not None and ax is None:
+            plt.savefig(f"{file_name}.pdf", bbox_inches="tight")
+        if not show:
+            plt.close("all")
+
 
 class Experiment:
     """Class to represent and experiment consisting of objects of the ``Timepoint`` class"""
@@ -403,8 +544,8 @@ class Experiment:
         timepoint_name : str
             Name of the timepoint to be added.
         """
+        timepoint.change_name(timepoint_name)
         self._timepoints[timepoint_name] = timepoint
-
         self._num_timepoints += 1
         self._shape[1] += 1
         self._normalise_length()
@@ -430,6 +571,9 @@ class Experiment:
             Ordered list of new names for the timepoints.
         """
         self._timepoints = dict(zip(name_list, self._timepoints.values()))
+
+        for name in name_list:
+            self._timepoints[name].change_name(name)
 
     def shape(self):
         """
@@ -818,14 +962,14 @@ class Experiment:
             plt.close("all")
 
     def correlation_heatmap(
-        self, timepoint, file_name=None, frequency=True, rotated=True
+        self, timepoints=None, file_name=None, frequency=True, rotated=True, show=False
     ):
         """
         Generate a Spearman rank correlation heatmap of ``timepoint``.
 
         Parameters
         ----------
-        timepoint : str
+        timepoints : list[int]
             Timepoint to be considered.
         file_name : str
             Name of the file to save the plot to. If not given the plot is shown and not saved.
@@ -835,28 +979,52 @@ class Experiment:
             If True the labels on the x axis are rotated 45 degrees.
         """
 
-        data = self.to_df(frequency=frequency)
+        if timepoints is None:
+            timepoints = [0, 1, 2, 3, 4]
+        widths = [15] * len(timepoints)
+        widths.append(1)
 
-        h_map = sns.heatmap(
-            data[(data.Challenge == timepoint)].corr(method="spearman"),
-            vmin=-1,
-            vmax=1,
-            cmap=sns.diverging_palette(270, 10, s=90, sep=10, as_cmap=True),
-            annot=data[(data.Challenge == timepoint)]
-            .corr(method=_spearman_pvalue)
-            .applymap(_asterisk_significance, comparisons=comb(8, 2)),
-            fmt="",
-            annot_kws={"size": "xx-large"},
+        fig = plt.figure(
+            figsize=((3 * len(timepoints)), 3 * 1.25), constrained_layout=True
         )
-        h_map.set_aspect("equal")
+        fig.suptitle(self.name, fontsize=18)
+        # plt.subplots_adjust(top=0.9)
+        # lr_figs = fig.subfigures(1, 2, width_ratios=[(15 * len(timepoints)), 1], wspace=0)
+        subfig_list = np.empty(1, dtype=object)
+        # cbar_list = np.empty(1, dtype=object)
 
-        if rotated:
-            h_map.set_xticklabels(
-                h_map.get_xticklabels(), rotation=45, rotation_mode="anchor", ha="right"
-            )
+        subfig_list[0] = fig.subplots(
+            1, len(timepoints) + 1, gridspec_kw={"width_ratios": widths, "wspace": 0.1}
+        )
+        # subfig_list[0] = lr_figs[0].subplots(1, len(timepoints))
+        # cbar_list[0] = lr_figs[1].subplots(1, 1)
+
+        for timepoint_index, timepoint in enumerate(self.timepoints()):
+            if timepoint_index not in timepoints:
+                continue
+
+            if timepoint_index == timepoints[0]:
+                timepoint.correlation_heatmap(
+                    frequency=frequency,
+                    rotated=rotated,
+                    ax=subfig_list[0][timepoints.index(timepoint_index)],
+                    cbar_ax=subfig_list[0][-1],
+                    show=show,
+                )
+                # timepoint.correlation_heatmap(frequency=frequency, rotated=rotated, ax=subfig_list[0][timepoints.index(timepoint_index)], cbar_ax=cbar_list[0], show=show)
+            else:
+                timepoint.correlation_heatmap(
+                    frequency=frequency,
+                    rotated=rotated,
+                    ax=subfig_list[0][timepoints.index(timepoint_index)],
+                    y_ticks=False,
+                    cbar=False,
+                    show=show,
+                )
 
         if file_name is not None:
             plt.savefig(f"{file_name}.pdf", bbox_inches="tight")
+        if not show:
             plt.close("all")
 
     def correlation_plot(
