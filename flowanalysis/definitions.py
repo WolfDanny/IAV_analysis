@@ -1,6 +1,7 @@
 import csv
 import warnings
 from copy import deepcopy
+from math import log
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -856,7 +857,9 @@ class Experiment:
         if not show:
             plt.close("all")
 
-    def slope_plot(self, file_name=None, zeroline=True, show=False):
+    def slope_plot(
+        self, file_name=None, zeroline=True, show=False, times=None, digits=2
+    ):
         """
         Generate and save as a PDF a plot of all the slopes from the primary to memory, and memory to challenge timepoints.
 
@@ -868,6 +871,10 @@ class Experiment:
             If True the line y=0 is plotted on all graphs except the triple negative one.
         show : bool
             If true the plot is displayed.
+        times : list[float]
+            List of x values for the data. Default value is [10, 70, 90]
+        digits : int
+            Number of decimal places to be rounded to.
         """
 
         height = 14
@@ -885,7 +892,7 @@ class Experiment:
 
         col_figs = fig.subfigures(3, 8, wspace=0.05, hspace=0.05)
         fig_list = _slope_plot_array(
-            col_figs, [max_y, min_y_neg, max_y_neg], zeroline, title_size
+            col_figs, [max_y, min_y_neg, max_y_neg], zeroline, title_size, times=times
         )
 
         for current_row, _ in enumerate(col_figs):
@@ -896,8 +903,18 @@ class Experiment:
                     current_row,
                     current_col,
                     title_size,
+                    digits=digits,
+                    times=times,
                 )
-            _slope_plot(fig_list[current_row, -1], means, current_row, -1, title_size)
+            _slope_plot(
+                fig_list[current_row, -1],
+                means,
+                current_row,
+                -1,
+                title_size,
+                digits=digits,
+                times=times,
+            )
 
         if file_name is not None:
             fig.savefig(f"{file_name}.pdf")
@@ -1143,7 +1160,7 @@ def _venn_plot_options(ax, labels, label_size, number_size):
             pass
 
 
-def _slope_plot_array(ax, y_lims, zeroline, fontsize):
+def _slope_plot_array(ax, y_lims, zeroline, fontsize, times=None):
     """
     Creates the array of subplots from the array of subfigures for the slope plots.
 
@@ -1157,6 +1174,8 @@ def _slope_plot_array(ax, y_lims, zeroline, fontsize):
         If True the line y=0 is plotted on all graphs except the triple negative one.
     fontsize : int
         Font size of the plot.
+    times : list[float]
+        List of x values for the data. Default value is [10, 70, 90]
 
     Returns
     -------
@@ -1174,7 +1193,8 @@ def _slope_plot_array(ax, y_lims, zeroline, fontsize):
         "Triple positive",
         "Triple negative",
     ]
-    times = [10, 70, 90]
+    if times is None:
+        times = [10, 70, 90]
 
     fig_list = np.empty((3, 8), dtype=object)
 
@@ -1217,7 +1237,7 @@ def _slope_plot_array(ax, y_lims, zeroline, fontsize):
     return fig_list
 
 
-def _slope_plot(ax, means, row, col, fontsize, digits=2):
+def _slope_plot(ax, means, row, col, fontsize, digits=2, times=None):
     """
     Plot the current slope plot on ``ax``.
 
@@ -1235,67 +1255,111 @@ def _slope_plot(ax, means, row, col, fontsize, digits=2):
         Font size of the plot.
     digits : int
         Number of decimal places to be rounded to.
+    times : list[float]
+        List of x values for the data. Default value is [10, 70, 90]
     """
 
-    times = [10, 70, 90]
+    if times is None or len(times) != 4:
+        times = [[10, 70], [70, 70], [70, 90]]
+        time_deltas = [60, 20]
+    else:
+        time_deltas = [times[1] - times[0], times[3] - times[2]]
+        times = [[times[0], times[1]], [times[1], times[2]], [times[2], times[3]]]
 
+    # Plotting lines
     ax.plot(
-        times[:2],
+        times[0],
         [value[col] for value in means[:2]],
         "-",
         color="k",
     )
     ax.plot(
-        times[1:],
+        times[2],
         [means[1][col], means[row + 2][col]],
         "-",
         color="k",
     )
+    if times[1][0] != times[1][1]:
+        ax.plot(
+            times[1],
+            [means[1][col]] * 2,
+            "-",
+            color="k",
+        )
 
+    # Plotting markers
     ax.plot(
-        times[:2],
+        times[0],
         [value[col] for value in means[:2]],
         "D",
         ms=40,
         color="teal",
     )
-    ax.plot(
-        times[2],
-        [means[row + 2][col]],
-        "D",
-        ms=40,
-        color="teal",
-    )
+    if times[1][0] == times[1][1]:
+        ax.plot(
+            [times[2][1]],
+            [means[row + 2][col]],
+            "D",
+            ms=40,
+            color="teal",
+        )
+    else:
+        ax.plot(
+            times[2],
+            [means[1][col], means[row + 2][col]],
+            "D",
+            ms=40,
+            color="teal",
+        )
 
-    slope_1 = (means[1][col] - means[0][col]) / (times[1] - times[0])
+    try:
+        slope_1 = (log(means[1][col]) - log(means[0][col])) / time_deltas[0]
+    except ValueError:
+        slope_1 = (means[1][col] - means[0][col]) / time_deltas[0]
+    try:
+        slope_2 = (log(means[row + 2][col]) - log(means[1][col])) / time_deltas[1]
+    except ValueError:
+        slope_2 = (means[row + 2][col] - means[1][col]) / time_deltas[1]
+
     y1 = (means[1][col] + means[0][col]) / 2
-    slope_2 = (means[row + 2][col] - means[1][col]) / (times[2] - times[1])
     if col != -1:
         y2 = max(means[row + 2][col], means[1][col]) * 2
     else:
-        y2 = (
-            max(means[row + 2][col], means[1][col]) * 1.25
-        )  # (means[row + 2][col] + means[1][col]) / 2
+        y2 = max(means[row + 2][col], means[1][col]) * 1.25
 
     ax.text(
-        40,
+        times[0][0] + (time_deltas[0] / 2),
         y1,
-        str(round(slope_1, digits)),
+        f"${round(slope_1, digits)}$",
         fontsize=fontsize - 10,
         ha="center",
         bbox=dict(edgecolor="w", facecolor="w", alpha=1),
     )
     ax.text(
-        80,
+        times[2][0] + (time_deltas[1] / 2),
         y2,
-        str(round(slope_2, digits)),
+        f"${round(slope_2, digits)}$",
         fontsize=fontsize - 10,
         ha="center",
         bbox=dict(edgecolor="w", facecolor="w", alpha=1),
     )
+
+    # return slope_1, slope_2
 
 
 def header_clipping(experiment, cd45="+", file_name=None, check=False):
+    """
+    Clips white space from headers in ``experiment`` file for ``cd45`` positivity in the ``experiment priming`` directory.
+
+    A clean version of the file (``experiment cd45 .csv``) is created in the ``Data`` directory.
+
+    Parameters
+    ----------
+    experiment : str
+    cd45 : str
+    file_name : str
+    check : bool
+    """
 
     if file_name is None:
         file_name = "NTW-CD45"

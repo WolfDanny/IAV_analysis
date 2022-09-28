@@ -16,6 +16,7 @@ populations = {
     "TN": 7,
 }
 standalone = False
+frequencies = True
 
 
 def coordinate_loop(nodes):
@@ -176,13 +177,18 @@ for organ in organs:
             for primary_index, primary in enumerate(infections):
                 if primary_index != 0:
                     outfile.write("\n & ")
-                outfile.write("\\rotatebox{90}{\phantom{nnnn}" + primary + "} &\n")
+                outfile.write("\\rotatebox{90}{\\phantom{nnnn}" + primary + "} &\n")
                 for timepoint_index, timepoint in enumerate(timepoints):
 
                     if timepoint_index < 2:
-                        filename = f"ANOVA/{primary}/Tukey-{timepoint[0]}-{organ[0]}-{residency[:3]}.csv"
+                        filename = f"ANOVA/{primary}/Tukey-{timepoint[0]}-{organ[0]}-{residency[:3]}"
                     else:
-                        filename = f"ANOVA/{primary}/Tukey-{timepoint}-{organ[0]}-{residency[:3]}.csv"
+                        filename = f"ANOVA/{primary}/Tukey-{timepoint}-{organ[0]}-{residency[:3]}"
+
+                    if frequencies:
+                        filename = "".join([filename, "-F.csv"])
+                    else:
+                        filename = "".join([filename, ".csv"])
 
                     try:
                         with open(filename) as file:
