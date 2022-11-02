@@ -1,0 +1,478 @@
+
+
+%====================================================================================================
+%====================================================================================================
+%                                         Lungs circulating
+
+%Make sure to include these lines in the preamble of your TeX document
+
+%\usepackage{tikz}
+%\pgfmathsetmacro\ranova{1.5}
+%\usepackage{multirow}
+%\definecolor{ANOVAGreen}{RGB}{121,162,40}
+%\tikzstyle{ANOVAS}=[circle,draw=ANOVAGreen,fill=ANOVAGreen!30,very thick,minimum size = 5pt]
+%\tikzstyle{ANOVAL}=[circle,draw=ANOVAGreen,fill=ANOVAGreen!30,very thick,minimum size = 25pt]
+%====================================================================================================
+%====================================================================================================
+
+
+\centering
+\begin{tabular}{ccc|c|cccc}
+
+\multicolumn{8}{c}{\Large WT positive cells}\\
+
+\multirow{3}{*}{\rotatebox{90}{\Large Lung}} &
+\rotatebox{90}{Circulating} &
+
+\scalebox{0.6}{ % Lung -- Circulating -- Primary
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Lung -- Circulating -- Memory
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Lung -- Circulating -- WT
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Lung -- Circulating -- T8A
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Lung -- Circulating -- N3A
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\multirow{8}{*}[-3em]{ % [3.5em] is the fixup parameter for vertical alignment. # of units moved upwards
+\scalebox{0.8}{
+\begin{tikzpicture}
+\matrix [row sep=5pt, draw=black, rounded corners=15pt, thick] {
+	\node[ANOVAS, label=right:WT primary]{$1$};\\
+	\node[ANOVAS, label=right:T8A primary]{$2$};\\
+	\node[ANOVAS, label=right:N3A primary]{$3$};\\
+};
+\end{tikzpicture}
+}
+}
+\\
+
+ & & & & & & & \\
+
+ & \rotatebox{90}{\phantom{n}Resident} &
+
+\scalebox{0.6}{ % Lung -- Resident -- Primary
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Lung -- Resident -- Memory
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Lung -- Resident -- WT
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Lung -- Resident -- T8A
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Lung -- Resident -- N3A
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+\\
+
+ & & & & & & & \\
+
+\multirow{3}{*}{\rotatebox{90}{\Large Spleen}} &
+\rotatebox{90}{Circulating} &
+
+\scalebox{0.6}{ % Spleen -- Circulating -- Primary
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Spleen -- Circulating -- Memory
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Spleen -- Circulating -- WT
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {2/0, 2/1}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {2/3}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Spleen -- Circulating -- T8A
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Spleen -- Circulating -- N3A
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+\\
+
+ & & & & & & & \\
+
+ & \rotatebox{90}{\phantom{n}Resident} &
+
+\scalebox{0.6}{ % Spleen -- Resident -- Primary
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Spleen -- Resident -- Memory
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Spleen -- Resident -- WT
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Spleen -- Resident -- T8A
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+
+\scalebox{0.6}{ % Spleen -- Resident -- N3A
+\begin{tikzpicture}
+
+\foreach \i in {0,...,3}{
+	\coordinate (c\i) at (\i*360/3+60:\ranova);
+}
+\foreach \i/\j in {}{
+	\draw[preaction={draw, line width=3pt, white}, thick] (c\i) -- (c\j);
+}
+\foreach \i/\j in {0/1, 1/2, 2/3}{
+	\node (p\i) at (c\i)[ANOVAS]{$\j$};
+}
+\foreach \i/\j in {}{
+	\node (p\i) at (c\i)[ANOVAL]{$\j$};
+}
+
+\end{tikzpicture}
+}
+&
+
+\\
+
+ & & Primary & Memory & WT challenge & T8A challenge & N3A challenge & \\
+ & & \multicolumn{5}{c}{\Large Timepoint} & \\
+\end{tabular}

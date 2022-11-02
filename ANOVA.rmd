@@ -98,3 +98,23 @@ for (file_index in 1:4){
   }
 }
 ```
+```{r Tetramer positive cells}
+
+cd45_list <- list("-Res", "-Cir")
+tissue_list <- list("-L", "-S")
+timepoint_list <- list("-P", "-M", "-WT", "-T8A", "-N3A")
+tetramers <- list("WT", "T8A", "N3A")
+
+for (tetramer in tetramers){
+  for (cd45 in cd45_list){
+    for (tissue in tissue_list){
+      for (timepoint in timepoint_list){
+        Data <- read.csv(paste0("ANOVA/Data/", tetramer, timepoint, tissue, cd45, ".csv"))
+        aovData <- aov(Cells ~ Experiment, Data)
+        tukeyData <- TukeyHSD(aovData, ordered=TRUE, conf.level=0.95)
+        write.csv(as.data.frame(tukeyData[1]), paste0("ANOVA/Tetramers/Tukey-", tetramer, timepoint, tissue, cd45, ".csv"))
+      }
+    }
+  }
+}
+```

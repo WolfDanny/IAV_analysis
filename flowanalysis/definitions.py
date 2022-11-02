@@ -195,6 +195,18 @@ class Mouse:
                 ]
             )
 
+    def positive_cells(self, tetramer):
+
+        if self:
+            if tetramer == "WT":
+                return self.wt + self.wt_t8a + self.wt_n3a + self.triple_positive
+            elif tetramer == "T8A":
+                return self.t8a + self.wt_t8a + self.t8a_n3a + self.triple_positive
+            elif tetramer == "N3A":
+                return self.n3a + self.wt_n3a + self.t8a_n3a + self.triple_positive
+        else:
+            return None
+
 
 class Timepoint:
     """Class to represent a timepoint consisting of objects of the ``Mouse`` class"""
@@ -219,7 +231,7 @@ class Timepoint:
 
     def _add_mouse(self, mouse):
         """
-        Adds ``mouse`` to the list of mice in the timepoint, and increases the number of mice.
+        Adds ``mouse`` to the list of mice in the timepoint, and increases the number of mice by 1.
 
         Parameters
         ----------
@@ -231,7 +243,7 @@ class Timepoint:
 
     def change_name(self, name):
         """
-        Change the name of the timepoint.
+        Changes the name of the timepoint to ``name``.
 
         Parameters
         ----------
@@ -297,7 +309,7 @@ class Timepoint:
 
     def fill_empty_mice(self, number):
         """
-        Fills the timepoint with empty mice so that the total number of mice is ``number``.
+        Adds empty mice so that the total number of mice is ``number``.
 
         Parameters
         ----------
@@ -307,6 +319,16 @@ class Timepoint:
         for _ in range(number - self.total_mice()):
             self._mice.append(Mouse())
         self._num_empty_mice += number - self.total_mice()
+
+    def positive_cells(self, tetramer):
+
+        values = []
+
+        for mouse in self._mice:
+            if mouse:
+                values.append(mouse.positive_cells(tetramer))
+
+        return tuple(values)
 
     def mean(self, venn=True, complete=False, frequency=True, digits=5):
         """
@@ -441,12 +463,10 @@ class Timepoint:
         show=False,
     ):
         """
-        Generate a Spearman rank correlation heatmap of ``timepoint``.
+        Generates a Spearman rank correlation heatmap of ``timepoint``.
 
         Parameters
         ----------
-        timepoint : str
-            Timepoint to be considered.
         file_name : str
             Name of the file to save the plot to. If not given the plot is shown and not saved.
         frequency : bool
@@ -470,15 +490,18 @@ class Timepoint:
         """
 
         data = self.to_df(frequency=frequency)
+        data_corr = data.corr(method="spearman")
+        significance = data.corr(method=_spearman_pvalue).applymap(
+            _asterisk_significance, comparisons=comb(8, 2)
+        )
 
         h_map = sns.heatmap(
-            data.corr(method="spearman"),
+            data_corr,
+            mask=np.triu(np.ones_like(data_corr, dtype=bool)),
             vmin=-1,
             vmax=1,
             cmap=sns.diverging_palette(270, 10, s=90, sep=10, as_cmap=True),
-            annot=data.corr(method=_spearman_pvalue).applymap(
-                _asterisk_significance, comparisons=comb(8, 2)
-            ),
+            annot=significance,
             fmt="",
             annot_kws={"size": "xx-large"},
             cbar=cbar,
@@ -509,16 +532,19 @@ class Timepoint:
 class Experiment:
     """Class to represent and experiment consisting of objects of the ``Timepoint`` class"""
 
-    def __init__(self, name):
+    def __init__(self, name, tag):
         """
         Constructor for the ``Experiment`` class.
 
         Parameters
         ----------
         name : str
-            Name of the experiment.
+            Complete name of the experiment.
+        tag : str
+            Name of the priming infection.
         """
         self.name = name
+        self.tag = tag
         self._timepoints = {}
         self._num_timepoints = 0
         self._shape = [0, 0]
@@ -534,7 +560,7 @@ class Experiment:
 
     def _add_timepoint(self, timepoint, timepoint_name):
         """
-        Add ``timepoint`` under the name ``timepoint_name`` to the dictionary of timepoints.
+        Adds ``timepoint`` with the name ``timepoint_name`` to the dictionary of timepoints.
 
         Updates the shape of the experiment and normalises the length of the timepoints.
 
@@ -564,7 +590,7 @@ class Experiment:
 
     def change_names(self, name_list):
         """
-        Change the names of the timepoints.
+        Changes the names of the timepoints to those in ``name_list``.
 
         Parameters
         ----------
@@ -578,7 +604,7 @@ class Experiment:
 
     def shape(self):
         """
-        Returns the shape of the experiment (mice, timepoints).
+        Returns the shape of the experiment.
 
         Returns
         -------
@@ -594,7 +620,7 @@ class Experiment:
         Returns
         -------
         int
-            Number of timepoints in the exeriment.
+            Number of timepoints in the experiment.
         """
         return self._num_timepoints
 
@@ -605,9 +631,9 @@ class Experiment:
         Parameters
         ----------
         timepoints : list[Timepoint]
-            List of ``Timepoint`` objects to be added.
+            List of Timepoint objects to be added.
         timepoint_names : list[str]
-            List of names of all ``Timepoint`` objects to be added.
+            List of names of all Timepoint objects to be added.
 
         Returns
         -------
@@ -758,8 +784,8 @@ class Experiment:
 
         if file_name is not None:
             df.to_csv(f"{file_name}.csv", index=False)
-
-        return df
+        else:
+            return df
 
     def venn_plot(
         self,
@@ -920,6 +946,17 @@ class Experiment:
             fig.savefig(f"{file_name}.pdf")
         if not show:
             plt.close("all")
+
+    def positive_cells_df(self, timepoint, tetramer):
+
+        column_names = ["Experiment", "Cells"]
+
+        df_data = [
+            [self.tag, value]
+            for value in self._timepoints[timepoint].positive_cells(tetramer)
+        ]
+
+        return pd.DataFrame(df_data, columns=column_names)
 
     def combined_correlation_plot(
         self,
@@ -1562,8 +1599,13 @@ def data_extraction(
     else:
         file_name = f"Data/{experiment}-{file_name}{cd45}.csv"
 
+    experiment_organ = organ[0].upper() + organ[1:]
+    if experiment_organ[-1] == "s":
+        experiment_organ = experiment_organ[:-1]
+
     current_experiment = Experiment(
-        " ".join([organ[0].upper() + organ[1:], cd45_name, "--", experiment, "primary"])
+        " ".join([experiment_organ, cd45_name, "--", experiment, "primary"]),
+        experiment,
     )
     experiment_timepoints = []
 
@@ -2136,3 +2178,173 @@ def data_update(data, tetramer):
             updated_data.append(separate_data(data, primary, challenge, tetramer).Cells)
 
     return updated_data
+
+
+def positive_cells_df(experiments, timepoint, tetramer, file_name=None):
+    df = pd.concat(
+        [priming.positive_cells_df(timepoint, tetramer) for priming in experiments],
+        ignore_index=True,
+    )
+
+    if file_name is not None:
+        df.to_csv(f"{file_name}.csv", index=False)
+
+    return df
+
+
+def tex_requirements(file, title, length=100):
+    """
+    Writes the requirements for the TikZ figure ``title`` to ``file``.
+
+    Parameters
+    ----------
+    file : _io.TextIO
+        File to which the requirements will be written.
+    title : str
+        Title of the figure.
+    length : int
+        Length of the separating line. Default is 100.
+    """
+
+    line = "=" * length
+    file.write(f"\n\n%{line}\n")
+    file.write(f"%{line}\n")
+    file.write("".join([f"%{title : ^{length-1}}".rstrip(), "\n\n"]))
+    file.write(
+        "%Make sure to include these lines in the preamble of your TeX document\n\n"
+    )
+    file.write("%\\usepackage{tikz}\n")
+    file.write("%\\pgfmathsetmacro\\ranova{1.5}\n")
+    file.write("%\\usepackage{multirow}\n")
+    file.write("%\\definecolor{ANOVAGreen}{RGB}{121,162,40}\n")
+    file.write(
+        "%\\tikzstyle{ANOVAS}=[circle,draw=ANOVAGreen,fill=ANOVAGreen!30,very thick,minimum size = 5pt]\n"
+    )
+    file.write(
+        "%\\tikzstyle{ANOVAL}=[circle,draw=ANOVAGreen,fill=ANOVAGreen!30,very thick,minimum size = 25pt]\n"
+    )
+    file.write(f"%{line}\n")
+    file.write(f"%{line}\n")
+    file.write("\n\n")
+
+
+def coordinate_loop(nodes):
+    """
+    Generates the LaTeX commands to place ``nodes`` evenly spaced coordinates on a circle of radius r.
+
+    Parameters
+    ----------
+    nodes : int
+        Number of coordinates to be placed.
+
+    Returns
+    -------
+    str
+        LaTeX commands to generate evenly spaced nodes in a circle of radius r.
+    """
+
+    return f"\\foreach \\i in {{0,...,{nodes}}}{{\n\t\\coordinate (c\\i) at (\\i*360/{nodes}:\\ranova);\n}}\n"
+
+
+def node_loop(nodes, edges, numbered=False):
+    """
+    Generates the LaTeX commands to draw ``nodes`` nodes in a set of pre-existing coordinates.
+
+    Parameters
+    ----------
+    nodes : int
+        Number of nodes to be drawn.
+    edges : list[tuple[int]]
+        Edges in the figure.
+    numbered : bool
+        Numerical labeling of the nodes.
+
+    Returns
+    -------
+    str
+        LaTeX commands to draw nodes in a set of coordinates.
+    """
+
+    edges = [a for (a, b) in edges]
+
+    if not numbered:
+        return f"\\foreach \\i in {{0,...,{nodes}}}{{\n\t\\node (p\\i) at (c\\i)[ANOVAS]{{}};\n}}\n\n"
+    else:
+        node_names = []
+        large_node_names = []
+        for i in range(nodes):
+            if i not in edges:
+                node_names.append(f"{i}/{i+1}")
+            else:
+                large_node_names.append(f"{i}/{i+1}")
+        node_names = ", ".join(node_names)
+
+        nodes_string = [
+            f"\\foreach \\i/\\j in {{{node_names}}}{{\n\t\\node (p\\i) at (c\\i)[ANOVAS]{{$\\j$}};\n}}\n"
+        ]
+        if large_node_names:
+            large_node_names = ", ".join(large_node_names)
+            nodes_string.append(
+                f"\\foreach \\i/\\j in {{{large_node_names}}}{{\n\t\\node (p\\i) at (c\\i)[ANOVAL]{{$\\j$}};\n}}\n\n"
+            )
+        else:
+            nodes_string.append("\n")
+
+        return "".join(nodes_string)
+
+
+def edge_loop(edges, dashed=False):
+    """
+    Generates the LaTeX commands to draw the edges specified in ``edges``.
+
+    Parameters
+    ----------
+    edges : list[tuple[int]]
+        List of edges to be drawn.
+    dashed : bool
+        Dashed edges.
+
+    Returns
+    -------
+    str
+        LaTeX commands to draw the specified edges.
+    """
+
+    edges = [f"{a}/{b}" for (a, b) in edges]
+    comma = ", "
+
+    if dashed:
+        return f"\\foreach \\i/\\j in {{{comma.join(edges)}}}{{\n\t\\draw[preaction={{draw, line width=3pt, white}}, thick, dashed, black!40] (c\\i) -- (c\\j);\n}}\n"
+    else:
+        return f"\\foreach \\i/\\j in {{{comma.join(edges)}}}{{\n\t\\draw[preaction={{draw, line width=3pt, white}}, thick] (c\\i) -- (c\\j);\n}}\n"
+
+
+def tikz_legend(legend_populations):
+    """
+    Generates the LaTeX commands to draw the legend of the TikZ figure.
+
+    Parameters
+    ----------
+    legend_populations : dict
+        Dictionary of population names (keys) and indexes (values).
+
+    Returns
+    -------
+    str
+        LaTeX commands to draw the legend of the figure.
+    """
+
+    legend = [
+        "\n\\multirow{3}{*}[3em]{ % [3em] is the fixup parameter for vertical alignment. # of units moved upwards\n",
+        "\\scalebox{0.8}{\n\\begin{tikzpicture}\n\\matrix [row sep=5pt, draw=black, rounded corners=15pt, thick] {\n",
+    ]
+    for legend_population, legend_index in legend_populations.items():
+        legend.append(
+            f"\t\\node[ANOVAS, label=right:{legend_population}]"
+            + "{"
+            + f"${legend_index+1}$"
+            + "};\\\\\n"
+        )
+    legend.append("};\n\\end{tikzpicture}\n}\n}\n")
+
+    return "".join(legend)

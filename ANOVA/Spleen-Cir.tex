@@ -1,8 +1,8 @@
 
 
-%======================================================================
-%======================================================================
-%                         Spleen circulating
+%====================================================================================================
+%====================================================================================================
+%                                        Spleen circulating
 
 %Make sure to include these lines in the preamble of your TeX document
 
@@ -12,15 +12,15 @@
 %\definecolor{ANOVAGreen}{RGB}{121,162,40}
 %\tikzstyle{ANOVAS}=[circle,draw=ANOVAGreen,fill=ANOVAGreen!30,very thick,minimum size = 5pt]
 %\tikzstyle{ANOVAL}=[circle,draw=ANOVAGreen,fill=ANOVAGreen!30,very thick,minimum size = 25pt]
-%======================================================================
-%======================================================================
+%====================================================================================================
+%====================================================================================================
 
 
 \centering
 \begin{tabular}{ccc|c|cccc}
 
 \multirow{3}{*}{\rotatebox{90}{\Large Primary infection}} &
-\rotatebox{90}{\phantom{nnnn}WT} &
+\rotatebox{90}{\phantom{nnn}WT} &
 
 \scalebox{0.6}{ % WT -- Primary
 \begin{tikzpicture}
@@ -130,25 +130,25 @@
 &
 
 
-\multirow{3}{*}[3.5em]{ % [3.5em] is the fixup parameter for vertical alignment. # of units moved upwards
+\multirow{3}{*}[3em]{ % [3em] is the fixup parameter for vertical alignment. # of units moved upwards
 \scalebox{0.8}{
 \begin{tikzpicture}
-\matrix [row sep=5pt, draw=black, fill=black!5, rounded corners=15pt, thick] {
-	\node[cell, label=right:WT]{$1$};\\
-	\node[cell, label=right:T8A]{$2$};\\
-	\node[cell, label=right:N3A]{$3$};\\
-	\node[cell, label=right:WT+T8A]{$4$};\\
-	\node[cell, label=right:WT+N3A]{$5$};\\
-	\node[cell, label=right:T8A+N3A]{$6$};\\
-	\node[cell, label=right:TP]{$7$};\\
-	\node[cell, label=right:TN]{$8$};\\
+\matrix [row sep=5pt, draw=black, rounded corners=15pt, thick] {
+	\node[ANOVAS, label=right:WT]{$1$};\\
+	\node[ANOVAS, label=right:T8A]{$2$};\\
+	\node[ANOVAS, label=right:N3A]{$3$};\\
+	\node[ANOVAS, label=right:WT-T8A]{$4$};\\
+	\node[ANOVAS, label=right:WT-N3A]{$5$};\\
+	\node[ANOVAS, label=right:T8A-N3A]{$6$};\\
+	\node[ANOVAS, label=right:TP]{$7$};\\
+	\node[ANOVAS, label=right:TN]{$8$};\\
 };
 \end{tikzpicture}
 }
 }
 \\
 
- & \rotatebox{90}{\phantom{nnnn}T8A} &
+ & \rotatebox{90}{\phantom{nnn}T8A} &
 
 \scalebox{0.6}{ % T8A -- Primary
 \begin{tikzpicture}
@@ -265,7 +265,7 @@
 
 \\
 
- & \rotatebox{90}{\phantom{nnnn}N3A} &
+ & \rotatebox{90}{\phantom{nnn}N3A} &
 
 \scalebox{0.6}{ % N3A -- Primary
 \begin{tikzpicture}
