@@ -80,7 +80,7 @@ class Mouse:
         else:
             return "Empty mouse"
 
-    def cell_summary(self, venn=True, complete=False, ints=False):
+    def cell_summary(self, venn=True, complete=False, total=False, ints=False):
         """
         Summarises the populations of tetramer positive cells.
 
@@ -90,6 +90,9 @@ class Mouse:
             If True returns populations formatted for the venn3 package.
         complete : bool
             If False the triple negative population is removed.
+        total : bool
+            If True the triple negative population is replaced by the total population of positive cells.
+            Implies complete=False and venn=False.
         ints : bool
             If True returns a tuple of integers.
 
@@ -98,6 +101,10 @@ class Mouse:
         populations : tuple
             Tuple of populations of CD8 positive cells
         """
+        if total:
+            complete = False
+            venn = False
+
         populations = [
             self.wt,
             self.t8a,
@@ -113,6 +120,8 @@ class Mouse:
             populations[2], populations[3] = populations[3], populations[2]
         if not complete:
             populations.pop()
+        if total:
+            populations.append(sum(populations))
         if ints:
             populations = [int(value) for value in populations]
 
@@ -161,7 +170,7 @@ class Mouse:
             return True
         return False
 
-    def frequency(self, venn=True, complete=False, digits=None):
+    def frequency(self, venn=True, complete=False, total=False, digits=None):
         """
         Returns a tuple of the frequencies of each population with respect to CD8 positive cells.
 
@@ -171,6 +180,9 @@ class Mouse:
             If True returns populations formatted for the venn3 package.
         complete : bool
             If False the triple negative population is removed.
+        total : bool
+            If True the triple negative population is replaced by the total population of positive cells.
+            Implies complete=False and venn=False.
         digits : int
             Number of decimal places to be rounded to.
 
@@ -184,14 +196,18 @@ class Mouse:
             return tuple(
                 [
                     value / self.total_cells()
-                    for value in self.cell_summary(venn=venn, complete=complete)
+                    for value in self.cell_summary(
+                        venn=venn, complete=complete, total=total
+                    )
                 ]
             )
         else:
             return tuple(
                 [
                     round(value / self.total_cells(), digits)
-                    for value in self.cell_summary(venn=venn, complete=complete)
+                    for value in self.cell_summary(
+                        venn=venn, complete=complete, total=total
+                    )
                 ]
             )
 
@@ -330,7 +346,7 @@ class Timepoint:
 
         return tuple(values)
 
-    def mean(self, venn=True, complete=False, frequency=True, digits=5):
+    def mean(self, venn=True, complete=False, frequency=True, total=False, digits=5):
         """
         Returns the mean value of the populations in the timepoint.
 
@@ -342,6 +358,9 @@ class Timepoint:
             If False the triple negative population is removed.
         frequency : bool
             If True the frequency with respect to CD8 positive cells is calculated.
+        total : bool
+            If True the triple negative population is replaced by the total population of positive cells.
+            Implies complete=False and venn=False.
         digits : int
             Number of decimal places to be rounded to.
 
@@ -352,12 +371,20 @@ class Timepoint:
         """
         mean_values = [0.0] * 8
 
+        if total:
+            complete = False
+            venn = False
+
         for mouse in self._mice:
             if mouse:
                 if frequency:
-                    current_values = mouse.frequency(venn=venn, complete=complete)
+                    current_values = mouse.frequency(
+                        venn=venn, complete=complete, total=total
+                    )
                 else:
-                    current_values = mouse.cell_summary(venn=venn, complete=complete)
+                    current_values = mouse.cell_summary(
+                        venn=venn, complete=complete, total=total
+                    )
                 for population, value in enumerate(current_values):
                     mean_values[population] += value
 
@@ -368,12 +395,12 @@ class Timepoint:
                 round(value / self._num_mice, digits) for value in mean_values
             ]
 
-        if not complete:
+        if not complete and not total:
             mean_values.pop()
 
         return tuple(mean_values)
 
-    def frequency(self, venn=True, complete=False, digits=None):
+    def frequency(self, venn=True, complete=False, total=False, digits=None):
         """
         Returns a list of tuples containing the frequencies of each population for each mouse in the timepoint.
 
@@ -383,6 +410,9 @@ class Timepoint:
             If True returns populations formatted for the venn3 package.
         complete : bool
             If False the triple negative population is removed.
+        total : bool
+            If True the triple negative population is replaced by the total population of positive cells.
+            Implies complete=False and venn=False.
         digits : int
             Number of decimal places to be rounded to.
 
@@ -392,7 +422,7 @@ class Timepoint:
             List of frequencies for each mouse in the timepoint.
         """
         return [
-            mouse.frequency(venn, complete, digits)
+            mouse.frequency(venn, complete, total, digits)
             if mouse
             else mouse.cell_summary_venn()
             for mouse in self._mice
@@ -675,7 +705,7 @@ class Experiment:
         """
         return [timepoint.total_mice() for timepoint in self.timepoints()]
 
-    def frequency(self, venn=True, complete=False, digits=None):
+    def frequency(self, venn=True, complete=False, total=False, digits=None):
         """
         Returns the list of frequencies for each mouse in each timepoint.
 
@@ -685,6 +715,9 @@ class Experiment:
             If True returns populations formatted for the venn3 package.
         complete : bool
             If False the triple negative population is removed.
+        total : bool
+            If True the triple negative population is replaced by the total population of positive cells.
+            Implies complete=False and venn=False.
         digits : int
             Number of decimal places to be rounded to.
 
@@ -694,7 +727,7 @@ class Experiment:
             List of frequencies for each mouse in each timepoint.
         """
         return [
-            timepoint.frequency(venn, complete, digits)
+            timepoint.frequency(venn, complete, total, digits)
             for timepoint in self.timepoints()
         ]
 
@@ -955,6 +988,58 @@ class Experiment:
             [self.tag, value]
             for value in self._timepoints[timepoint].positive_cells(tetramer)
         ]
+
+        return pd.DataFrame(df_data, columns=column_names)
+
+    def decay_slope(self, times, tetramer):
+        mean = self._timepoints["Primary"].mean(frequency=False, total=True)[tetramer]
+        return [
+            (mouse.cell_summary(total=True)[tetramer] - mean) / (times[1] - times[0])
+            for mouse in self._timepoints["Memory"].mouse_list()
+            if mouse.cell_summary(total=True)[tetramer] > 0
+        ]
+
+    def expansion_slope(self, times, challenge, tetramer):
+        mean = self._timepoints[challenge].mean(frequency=False, total=True)[tetramer]
+        return [
+            (mean - mouse.cell_summary(total=True)[tetramer]) / (times[1] - times[0])
+            for mouse in self._timepoints["Memory"].mouse_list()
+            if mouse.cell_summary(total=True)[tetramer] > 0
+        ]
+
+    def slope_df(self, times, decay=True, challenge=None, tetramer=None):
+
+        tetramer_position = {
+            "WT": 0,
+            "T8A": 1,
+            "N3A": 2,
+            "WT-T8A": 3,
+            "WT-N3A": 4,
+            "T8A-N3A": 5,
+            "TP": 6,
+            "Total": 7,
+        }
+
+        if not decay and challenge is None:
+            return -1
+
+        if tetramer is None:
+            tetramer = "Total"
+
+        if decay:
+            column_names = ["Primary", "Slope"]
+            df_data = [
+                [self.tag, slope]
+                for slope in self.decay_slope(times, tetramer_position[tetramer])
+            ]
+        else:
+            column_names = ["Challenge", "Slope"]
+            df_data = [
+                [challenge, slope]
+                for slope in self.expansion_slope(
+                    times, challenge, tetramer_position[tetramer]
+                )
+            ]
 
         return pd.DataFrame(df_data, columns=column_names)
 
@@ -2182,7 +2267,39 @@ def data_update(data, tetramer):
 
 def positive_cells_df(experiments, timepoint, tetramer, file_name=None):
     df = pd.concat(
-        [priming.positive_cells_df(timepoint, tetramer) for priming in experiments],
+        [primary.positive_cells_df(timepoint, tetramer) for primary in experiments],
+        ignore_index=True,
+    )
+
+    if file_name is not None:
+        df.to_csv(f"{file_name}.csv", index=False)
+
+    return df
+
+
+def decay_slopes_df(experiments, times, tetramer=None, file_name=None):
+    df = pd.concat(
+        [
+            primary.slope_df(times=times, decay=True, tetramer=tetramer)
+            for primary in experiments
+        ],
+        ignore_index=True,
+    )
+
+    if file_name is not None:
+        df.to_csv(f"{file_name}.csv", index=False)
+
+    return df
+
+
+def expansion_slopes_df(experiment, times, challenges, tetramer=None, file_name=None):
+    df = pd.concat(
+        [
+            experiment.slope_df(
+                times=times, decay=False, challenge=challenge, tetramer=tetramer
+            )
+            for challenge in challenges
+        ],
         ignore_index=True,
     )
 

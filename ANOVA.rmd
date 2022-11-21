@@ -118,3 +118,46 @@ for (tetramer in tetramers){
   }
 }
 ```
+```{r Decay slopes}
+
+tissue_list <- list("L", "S")
+cd45_list <- list("-Res", "-Cir")
+tetramer_positivity <- list("-WT", "-T8A", "-N3A", "-WT-T8A", "-WT-N3A", "-T8A-N3A", "-TP", "-Total")
+
+for (tissue in tissue_list){
+  for (cd45 in cd45_list){
+    for (tetramer in tetramer_positivity){
+      Data <- read.csv(paste0("ANOVA/Slopes/Decay/", tissue, cd45, tetramer, ".csv"))
+      if (length(unique(Data$Primary)) > 1){
+        aovData <- aov(Slope ~ Primary, Data)
+        tukeyData <- TukeyHSD(aovData, ordered=TRUE, conf.level=0.95)
+        write.csv(as.data.frame(tukeyData[1]), paste0("ANOVA/Decay/", tissue, cd45, tetramer, ".csv"))
+      }
+    }
+  }
+}
+
+
+```
+```{r Expansion slopes}
+
+tissue_list <- list("L", "S")
+cd45_list <- list("-Res", "-Cir")
+infections <- list("-WT", "-T8A", "-N3A")
+tetramer_positivity <- list("-WT", "-T8A", "-N3A", "-WT-T8A", "-WT-N3A", "-T8A-N3A", "-TP", "-Total")
+
+for (tissue in tissue_list){
+  for (cd45 in cd45_list){
+    for (primary in infections){
+      for (tetramer in tetramer_positivity){
+        Data <- read.csv(paste0("ANOVA/Slopes/Expansion/", tissue, cd45, primary, tetramer, ".csv"))
+        if (length(unique(Data$Challenge)) > 1){
+          aovData <- aov(Slope ~ Challenge, Data)
+          tukeyData <- TukeyHSD(aovData, ordered=TRUE, conf.level=0.95)
+          write.csv(as.data.frame(tukeyData[1]), paste0("ANOVA/Expansion/", tissue, cd45, primary, tetramer, ".csv"))
+        }
+      }
+    }
+  }
+}
+```
