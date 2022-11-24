@@ -212,6 +212,19 @@ class Mouse:
             )
 
     def positive_cells(self, tetramer):
+        """
+        Returns the number of cells positive for ``tetramer``.
+
+        Parameters
+        ----------
+        tetramer : str
+            Tetramer for which the cells are positive.
+
+        Returns
+        -------
+        int
+            Number of cells in the mouse positive for the tetramer.
+        """
 
         if self:
             if tetramer == "WT":
@@ -337,6 +350,19 @@ class Timepoint:
         self._num_empty_mice += number - self.total_mice()
 
     def positive_cells(self, tetramer):
+        """
+        Returns the number of cells positive for ``tetramer`` for every mouse in the timepoint.
+
+        Parameters
+        ----------
+        tetramer : str
+            Tetramer for which the cells are positive.
+
+        Returns
+        -------
+        tuple[int]
+            Tuple of the number of cells positive for the tetramer in each mouse.
+        """
 
         values = []
 
@@ -491,6 +517,8 @@ class Timepoint:
         cbar=True,
         cbar_ax=None,
         show=False,
+        title_size=15,
+        tick_size=None,
     ):
         """
         Generates a Spearman rank correlation heatmap of ``timepoint``.
@@ -517,6 +545,10 @@ class Timepoint:
             Axes in which to plot the colour bar, if None plotted in the currently active Axes.
         show : bool
             If true the plot is displayed.
+        title_size : int
+            Font size of the title of the plot.
+        tick_size : int
+            Font size of the tick labels.
         """
 
         data = self.to_df(frequency=frequency)
@@ -543,15 +575,23 @@ class Timepoint:
         )
         h_map.set_aspect("equal")
 
+        if tick_size is not None:
+            if x_ticks:
+                h_map.set_xticklabels(h_map.get_xticklabels(), size=tick_size)
+            if y_ticks:
+                h_map.set_yticklabels(h_map.get_yticklabels(), size=tick_size)
+            if cbar:
+                cbar_ax.tick_params(labelsize=tick_size)
+
         if rotated:
             h_map.set_xticklabels(
                 h_map.get_xticklabels(), rotation=45, rotation_mode="anchor", ha="right"
             )
 
         if title and ax is not None:
-            ax.set_title(self._name, fontsize=15)
+            ax.set_title(self._name, fontsize=title_size)
         elif title:
-            plt.gca().set_title(self._name, fontsize=15)
+            plt.gca().set_title(self._name, fontsize=title_size)
 
         if file_name is not None and ax is None:
             plt.savefig(f"{file_name}.pdf", bbox_inches="tight")
@@ -981,7 +1021,21 @@ class Experiment:
             plt.close("all")
 
     def positive_cells_df(self, timepoint, tetramer):
+        """
+        Returns a pandas DataFrame of the ``tetramer`` positive cells for all mice in ``timepoint``.
 
+        Parameters
+        ----------
+        timepoint : str
+            Timepoint for which the DataFrame is generated.
+        tetramer : str
+            Tetramer for which the cells are positive.
+
+        Returns
+        -------
+        pandas.core.frame.DataFrame
+            DataFrame of the tetramer positive cells.
+        """
         column_names = ["Experiment", "Cells"]
 
         df_data = [
@@ -992,6 +1046,21 @@ class Experiment:
         return pd.DataFrame(df_data, columns=column_names)
 
     def decay_slope(self, times, tetramer):
+        """
+        Calculates the decay slopes for ``tetramer`` positive cells from the mean of the *Primary* timepoint to every mouse in the *Memory* timepoint.
+
+        Parameters
+        ----------
+        times : list[int]
+            Times at which the Primary and Memory timepoints take place.
+        tetramer : int
+            Index of the tetramer for which the slopes are calculated.
+
+        Returns
+        -------
+        list[float]
+            Decay slopes for the tetramer specificity.
+        """
         mean = self._timepoints["Primary"].mean(frequency=False, total=True)[tetramer]
         return [
             (mouse.cell_summary(total=True)[tetramer] - mean) / (times[1] - times[0])
@@ -1000,6 +1069,23 @@ class Experiment:
         ]
 
     def expansion_slope(self, times, challenge, tetramer):
+        """
+        Calculates the expansion slopes for ``tetramer`` positive cells from every mouse in the *Memory* timepoint to the mean of the *Challenge* timpeoint.
+
+        Parameters
+        ----------
+        times : list[int]
+            Times at which the Memory and Challenge timepoints take place.
+        challenge : str
+            Challenge considered for the calculation of the slopes.
+        tetramer : int
+            Index of the tetramer for which the slopes are calculated.
+
+        Returns
+        -------
+        list[float]
+            Expansion slopes for the tetramer specificity on the challenge infection.
+        """
         mean = self._timepoints[challenge].mean(frequency=False, total=True)[tetramer]
         return [
             (mean - mouse.cell_summary(total=True)[tetramer]) / (times[1] - times[0])
@@ -1008,7 +1094,25 @@ class Experiment:
         ]
 
     def slope_df(self, times, decay=True, challenge=None, tetramer=None):
+        """
+        Returns a pandas DataFrame of the decay or expansion (to the ``challenge`` infection) slopes of the experiment.
 
+        Parameters
+        ----------
+        times : list[int]
+            Times at which the Memory and Challenge timepoints take place.
+        decay : bool
+            If True the decay slopes are calculated, otherwise the expansion slopes are calculated.
+        challenge : str
+            Challenge considered for the calculation of the expansion slopes.
+        tetramer : str
+            Tetramer for which the slopes are calculated.
+
+        Returns
+        -------
+        pandas.core.frame.DataFrame
+            DataFrame of the decay or expansion slopes for the experiment.
+        """
         tetramer_position = {
             "WT": 0,
             "T8A": 1,
@@ -1115,7 +1219,16 @@ class Experiment:
             plt.close("all")
 
     def correlation_heatmap(
-        self, timepoints=None, file_name=None, frequency=True, rotated=True, show=False
+        self,
+        timepoints=None,
+        file_name=None,
+        frequency=True,
+        rotated=True,
+        show=False,
+        title_size=None,
+        sub_title_size=None,
+        tick_size=None,
+        w_space=None,
     ):
         """
         Generate a Spearman rank correlation heatmap of the timepoints in ``timepoints``.
@@ -1132,6 +1245,14 @@ class Experiment:
             If True the labels on the x axis are rotated 45 degrees.
         show : bool
             If true the plot is displayed.
+        title_size : int
+            Font size of the title of the plot.
+        sub_title_size : int
+            Font size of the sub-titles in the plot.
+        tick_size : int
+            Font size of the tick labels.
+        w_space : float
+            Spacing of the subplots.
         """
 
         if timepoints is None:
@@ -1139,14 +1260,23 @@ class Experiment:
         widths = [15] * len(timepoints)
         widths.append(1)
 
+        if title_size is None:
+            title_size = 18
+        if sub_title_size is None:
+            sub_title_size = 15
+        if w_space is None:
+            w_space = 0.1
+
         fig = plt.figure(
             figsize=((3 * len(timepoints)), 3 * 1.25), constrained_layout=True
         )
-        fig.suptitle(self.name, fontsize=18)
+        fig.suptitle(self.name, fontsize=title_size)
         subfig_list = np.empty(1, dtype=object)
 
         subfig_list[0] = fig.subplots(
-            1, len(timepoints) + 1, gridspec_kw={"width_ratios": widths, "wspace": 0.1}
+            1,
+            len(timepoints) + 1,
+            gridspec_kw={"width_ratios": widths, "wspace": w_space},
         )
 
         for timepoint_index, timepoint in enumerate(self.timepoints()):
@@ -1160,6 +1290,8 @@ class Experiment:
                     ax=subfig_list[0][timepoints.index(timepoint_index)],
                     cbar_ax=subfig_list[0][-1],
                     show=show,
+                    title_size=sub_title_size,
+                    tick_size=tick_size,
                 )
             else:
                 timepoint.correlation_heatmap(
@@ -1169,6 +1301,8 @@ class Experiment:
                     y_ticks=False,
                     cbar=False,
                     show=show,
+                    title_size=sub_title_size,
+                    tick_size=tick_size,
                 )
 
         if file_name is not None:
