@@ -46,11 +46,11 @@ class Mouse:
         n3a : int
             Number of N3A single positive cells.
         wt_t8a : int
-            Number of WT+T8A double positive cells.
+            Number of WT-T8A double positive cells.
         wt_n3a : int
-            Number of WT+N3A double positive cells.
+            Number of WT-N3A double positive cells.
         t8a_n3a : int
-            Number of T8A+N3A double positive cells.
+            Number of T8A-N3A double positive cells.
         triple_positive : int
             Number of triple positive cells.
         triple_negative : int
@@ -476,9 +476,9 @@ class Timepoint:
             "WT",
             "T8A",
             "N3A",
-            "WT+T8A",
-            "WT+N3A",
-            "T8A+N3A",
+            "WT-T8A",
+            "WT-N3A",
+            "T8A-N3A",
             "TP",
             "TN",
         ]
@@ -822,9 +822,9 @@ class Experiment:
             "WT",
             "T8A",
             "N3A",
-            "WT+T8A",
-            "WT+N3A",
-            "T8A+N3A",
+            "WT-T8A",
+            "WT-N3A",
+            "T8A-N3A",
             "TP",
             "TN",
         ]
@@ -1177,9 +1177,9 @@ class Experiment:
                 "WT",
                 "T8A",
                 "N3A",
-                "WT+T8A",
-                "WT+N3A",
-                "T8A+N3A",
+                "WT-T8A",
+                "WT-N3A",
+                "T8A-N3A",
                 "TP",
                 "TN",
             ]
@@ -1340,9 +1340,9 @@ class Experiment:
                 "WT",
                 "T8A",
                 "N3A",
-                "WT+T8A",
-                "WT+N3A",
-                "T8A+N3A",
+                "WT-T8A",
+                "WT-N3A",
+                "T8A-N3A",
                 "TP",
                 "TN",
             ]
@@ -1443,9 +1443,9 @@ def _slope_plot_array(ax, y_lims, zeroline, fontsize, times=None):
         "WT",
         "T8A",
         "N3A",
-        "WT+T8A",
-        "WT+N3A",
-        "T8A+N3A",
+        "WT-T8A",
+        "WT-N3A",
+        "T8A-N3A",
         "Triple positive",
         "Triple negative",
     ]
