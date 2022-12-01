@@ -1063,9 +1063,10 @@ class Experiment:
         """
         mean = self._timepoints["Primary"].mean(frequency=False, total=True)[tetramer]
         return [
-            (mouse.cell_summary(total=True)[tetramer] - mean) / (times[1] - times[0])
+            (log(mouse.cell_summary(total=True)[tetramer]) - log(mean))
+            / (times[1] - times[0])
             for mouse in self._timepoints["Memory"].mouse_list()
-            if mouse.cell_summary(total=True)[tetramer] > 0
+            if mouse.cell_summary(total=True)[tetramer] > 0 and mean > 0
         ]
 
     def expansion_slope(self, times, challenge, tetramer):
@@ -1088,9 +1089,10 @@ class Experiment:
         """
         mean = self._timepoints[challenge].mean(frequency=False, total=True)[tetramer]
         return [
-            (mean - mouse.cell_summary(total=True)[tetramer]) / (times[1] - times[0])
+            (log(mean) - log(mouse.cell_summary(total=True)[tetramer]))
+            / (times[1] - times[0])
             for mouse in self._timepoints["Memory"].mouse_list()
-            if mouse.cell_summary(total=True)[tetramer] > 0
+            if mouse.cell_summary(total=True)[tetramer] > 0 and mean > 0
         ]
 
     def slope_df(self, times, decay=True, challenge=None, tetramer=None):
