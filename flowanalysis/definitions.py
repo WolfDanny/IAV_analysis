@@ -6,18 +6,10 @@ from math import log
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import seaborn as sns
 from matplotlib_venn import venn3, venn3_circles
-from plotly.subplots import make_subplots
 from scipy import stats
 from scipy.special import comb
-
-plt.rcParams.update({"text.usetex": True})
-plt.rcParams["text.latex.preamble"] = r"\usepackage{graphicx}"
-plt.rcParams["font.family"] = "serif"
-plt.rcParams["mathtext.fontset"] = "dejavuserif"
 
 
 class Mouse:
