@@ -48,17 +48,17 @@ for organ in organs:
                 for timepoint_index, timepoint in enumerate(timepoints):
 
                     if timepoint_index < 2:
-                        filename = f"ANOVA/{primary}/Tukey-{timepoint[0]}-{organ[0]}-{residency[:3]}"
+                        file_name = f"ANOVA/Results/{primary}/Tukey-{timepoint[0]}-{organ[0]}-{residency[:3]}"
                     else:
-                        filename = f"ANOVA/{primary}/Tukey-{timepoint}-{organ[0]}-{residency[:3]}"
+                        file_name = f"ANOVA/Results/{primary}/Tukey-{timepoint}-{organ[0]}-{residency[:3]}"
 
                     if frequencies:
-                        filename = "".join([filename, "-F.csv"])
+                        file_name = "".join([file_name, "-F.csv"])
                     else:
-                        filename = "".join([filename, ".csv"])
+                        file_name = "".join([file_name, ".csv"])
 
                     try:
-                        with open(filename) as file:
+                        with open(file_name) as file:
                             current_datafame = pd.read_csv(file)
 
                         # Reading and standardising names
