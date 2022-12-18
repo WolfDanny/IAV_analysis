@@ -461,7 +461,7 @@ class Timepoint:
         Parameters
         ----------
         file_name : str
-            If given the data frame will be saved to file_name.csv
+            If not None the DataFrame will be saved to file_name.csv
         frequency : bool
             If True the frequency with respect to CD8 positive cells is calculated.
 
@@ -805,7 +805,7 @@ class Experiment:
         Parameters
         ----------
         file_name : str
-            If given the data frame will be saved to file_name.csv
+            If not None the DataFrame will be saved to file_name.csv
         complete : bool
             If False only challenge timepoints are considered.
         frequency : bool
@@ -1108,7 +1108,7 @@ class Experiment:
         challenge : str
             Challenge considered for the calculation of the expansion slopes.
         tetramer : str
-            Tetramer for which the slopes are calculated.
+            Tetramer for which the slopes are calculated. If None the slope is calculated for the total population.
 
         Returns
         -------
@@ -1200,7 +1200,6 @@ class Experiment:
             vars=columns,
         )
         grid.map_diag(sns.kdeplot, warn_singular=False)
-        # grid.map_diag(sns.histplot)
         grid.map_lower(sns.scatterplot)
         grid.map_upper(
             _pairs_stats,
@@ -1321,7 +1320,7 @@ class Experiment:
         columns=None,
     ):
         """
-        Generate a pairs plot of the correlations for the ``challenge`` infection of the experiment.
+        Generates a pairs plot of the correlations for the ``challenge`` infection of the experiment.
 
         Parameters
         ----------
@@ -1358,7 +1357,6 @@ class Experiment:
             vars=columns,
         )
         grid.map_diag(sns.kdeplot, warn_singular=False)
-        # grid.map_diag(sns.histplot)
         grid.map_lower(sns.scatterplot)
         grid.map_upper(_pairs_stats, comparisons=comb(8, 2), spearman=spearman)
 
@@ -1375,7 +1373,7 @@ class Experiment:
 
 def _venn_plot_options(ax, labels, label_size, number_size):
     """
-    Set the parameters of ``ax`` to the desired values.
+    Sets the parameters of ``ax`` to the desired values.
 
     Parameters
     ----------
@@ -1602,162 +1600,25 @@ def _slope_plot(ax, means, row, col, fontsize, digits=2, times=None):
         bbox=dict(edgecolor="w", facecolor="w", alpha=1),
     )
 
-    # return slope_1, slope_2
 
-
-def header_clipping(experiment, cd45="+", file_name=None, check=False):
+def _column_index(file_name, headers, data_type=None):
     """
-    Clips white space from headers in ``experiment`` file for ``cd45`` positivity in the ``experiment priming`` directory.
-
-    A clean version of the file (``experiment cd45 .csv``) is created in the ``Data`` directory.
+    Finds the column index for the elements of ``headers`` in``file_name``.
 
     Parameters
     ----------
-    experiment : str
-    cd45 : str
     file_name : str
-    check : bool
+        Name of the file to be opened.
+    headers : list[str]
+        list of headers for which the column index will be found.
+    data_type : str
+        Type of sample considered.
+
+    Returns
+    -------
+    list[int]
+        List of column indices of the headers.
     """
-
-    if file_name is None:
-        file_name = "NTW-CD45"
-        newname = f"Data/{experiment}{cd45}.csv"
-    else:
-        newname = f"Data/{experiment}-{file_name}{cd45}.csv"
-
-    with open(f"{experiment} priming/{file_name}{cd45}.csv") as old_file:
-        old_csv = csv.reader(old_file)
-
-        with open(newname, "w") as newfile:
-            new_csv = csv.writer(newfile)
-
-            header = True
-            for row in old_csv:
-                if header:
-                    new_names = []
-                    for current_name in row:
-                        new_names.append(current_name.rstrip())
-                    new_csv.writerow(new_names)
-                    header = False
-                else:
-                    new_csv.writerow(row)
-            if check:
-                print(new_names)
-
-
-def time_name_list(experiment, headers, cd45="+", file_name=None):
-
-    if file_name is None:
-        file_name = f"Data/{experiment}{cd45}.csv"
-    else:
-        file_name = f"Data/{experiment}-{file_name}{cd45}.csv"
-
-    names = []
-
-    with open(file_name, "r") as file:
-        csvfile = csv.reader(file)
-
-        header = True
-        for row in csvfile:
-            if header:
-                time_name = row.index(headers[1])
-                header = False
-            else:
-                if row[time_name].rstrip() not in names:
-                    names.append(row[time_name].rstrip())
-    return names
-
-
-def _timepoint_extraction_challenge(
-    organ,
-    indices,
-    time_names,
-    time_name_index,
-    file_name,
-):
-
-    current_timepoint = Timepoint()
-    timepoint_mice = []
-
-    with open(file_name, "r") as file:
-        csvfile = csv.reader(file)
-        next(csvfile)
-
-        for row in csvfile:
-            if (
-                row[indices[0]].rstrip().lower() == organ.lower()
-                and row[indices[1]].rstrip().lower()
-                == time_names[time_name_index].rstrip().lower()
-            ):
-                values = [float(row[index]) for index in indices[2:9]]
-                values.append(float(row[indices[9]]) - sum(values))
-                timepoint_mice.append(Mouse(*values))
-
-    current_timepoint.add_mice(timepoint_mice)
-    return current_timepoint
-
-
-def _timepoint_extraction_naive(
-    organ,
-    indices,
-    time_names,
-    time_name_index,
-    column,
-    file_name,
-):
-
-    non_zero_positions = {"WT": (0, 2, 4, 6), "T8A": (1, 2, 5, 6), "N3A": (3, 4, 5, 6)}
-    current_timepoint = Timepoint()
-    timepoint_mice = []
-
-    with open(file_name, "r") as file:
-        csvfile = csv.reader(file)
-        next(csvfile)
-
-        for row in csvfile:
-            if (
-                row[indices[0]].rstrip().lower() == organ.lower()
-                and row[indices[1]].rstrip().lower()
-                == time_names[time_name_index].rstrip().lower()
-            ):
-                values = [0 for _ in range(7)]
-                for index, value_index in zip(non_zero_positions[column], indices[2:6]):
-                    values[index] = float(row[value_index])
-                timepoint_mice.append(Mouse(*values))
-    current_timepoint.add_mice(timepoint_mice)
-    return current_timepoint
-
-
-def timepoint_extraction(
-    organ,
-    indices,
-    time_names,
-    time_name_index,
-    data_type,
-    column,
-    file_name,
-):
-
-    if data_type is None:
-        return _timepoint_extraction_challenge(
-            organ,
-            indices,
-            time_names,
-            time_name_index,
-            file_name,
-        )
-    elif data_type == "naive" and column is not None:
-        return _timepoint_extraction_naive(
-            organ,
-            indices,
-            time_names,
-            time_name_index,
-            column,
-            file_name,
-        )
-
-
-def _column_index(file_name, headers, data_type=None):
 
     if data_type is None:
         with open(file_name, "r") as file:
@@ -1794,501 +1655,133 @@ def _column_index(file_name, headers, data_type=None):
     return indices
 
 
-def data_extraction(
-    experiment,
-    organ,
-    headers,
+def _timepoint_extraction_challenge(
+    tissue,
+    indices,
     time_names,
-    standard_names=None,
-    cd45=None,
-    timepoints=None,
-    data_type=None,
-    column=None,
-    file_name=None,
+    timepoint_index,
+    file_name,
 ):
+    """
+    Creates a ``Timepoint`` containing the data from ``file_name`` for ``timepoint_index``.
 
-    if cd45 is None:
-        cd45 = "+"
+    Parameters
+    ----------
+    tissue : str
+        Tissue the sample was taken from.
+    indices : list[int]
+        List of column indices of the populations.
+    time_names : list[str]
+        List of  timepoint names in the csv file.
+    timepoint_index : int
+        Current timepoint.
+    file_name : str
+        Name of the file to be opened.
 
-    if cd45 == "+":
-        cd45_name = "circulating"
-    else:
-        cd45_name = "resident"
+    Returns
+    -------
+    Timepoint
+        Specified timepoint of the experiment.
+    """
 
-    if file_name is None:
-        file_name = f"Data/{experiment}{cd45}.csv"
-    else:
-        file_name = f"Data/{experiment}-{file_name}{cd45}.csv"
+    current_timepoint = Timepoint()
+    timepoint_mice = []
 
-    experiment_organ = organ[0].upper() + organ[1:]
-    if experiment_organ[-1] == "s":
-        experiment_organ = experiment_organ[:-1]
+    with open(file_name, "r") as file:
+        csvfile = csv.reader(file)
+        next(csvfile)
 
-    current_experiment = Experiment(
-        " ".join([experiment_organ, cd45_name, "--", experiment, "primary"]),
-        experiment,
-    )
-    experiment_timepoints = []
-
-    if timepoints is None:
-        num_timepoints = len(time_names)
-    else:
-        num_timepoints = timepoints
-
-    indices = _column_index(file_name, headers, data_type=data_type)
-
-    for current_time_name in range(num_timepoints):
-        current_timepoint = timepoint_extraction(
-            organ,
-            indices,
-            time_names,
-            current_time_name,
-            data_type,
-            column,
-            file_name,
-        )
-        experiment_timepoints.append(current_timepoint)
-
-    current_experiment.add_timepoints(
-        experiment_timepoints, time_names[:num_timepoints]
-    )
-
-    if standard_names is not None:
-        current_experiment.change_names(standard_names)
-
-    return current_experiment
-
-
-def combine_naive_data(data_list):
-
-    combined_data = []
-
-    for current_row, _ in enumerate(data_list[0]):
-        row_values = []
-        for current_col, _ in enumerate(data_list):
-            row_values.append(data_list[current_col][current_row][0])
-        combined_data.append(deepcopy(row_values))
-
-    return combined_data
-
-
-def population_means(populations, normalised=False, ignore=None, decimals=None):
-
-    if ignore is None:
-        ignore = []
-
-    if decimals is None:
-        decimals = 2
-
-    means = []
-    actual_mice_list = []
-    empty_row = (-1, 0, 0, 0, 0, 0, 0)
-    rows = len(populations)
-    cols = len(populations[0])
-    actual_mice = 0
-
-    for current_col in range(cols):
-
-        actual_mice = rows
-        for current_row in range(rows):
+        for row in csvfile:
             if (
-                populations[current_row][current_col] == empty_row
-                or populations[current_row][current_col] == (-1,)
-                or current_row in ignore
+                row[indices[0]].rstrip().lower() == tissue.lower()
+                and row[indices[1]].rstrip().lower()
+                == time_names[timepoint_index].rstrip().lower()
             ):
-                actual_mice -= 1
-            if normalised and int(populations[current_row][current_col][0]) != 1:
-                actual_mice -= 1
+                values = [float(row[index]) for index in indices[2:9]]
+                values.append(float(row[indices[9]]) - sum(values))
+                timepoint_mice.append(Mouse(*values))
 
-        if actual_mice == 0:
-            means.append((-1, 0, 0, 0, 0, 0, 0))
-            continue
-
-        current_mean = []
-        for element, _ in enumerate(populations[0][current_col]):
-            value = 0
-            for current_row in range(rows):
-                if current_row in ignore:
-                    continue
-                if not normalised and (
-                    populations[current_row][current_col] != (-1, 0, 0, 0, 0, 0, 0)
-                    or populations[current_row][current_col] != (-1,)
-                ):
-                    value += populations[current_row][current_col][element]
-                if normalised and int(populations[current_row][current_col][0]) == 1:
-                    value += populations[current_row][current_col][element]
-            current_mean.append(round(value / actual_mice, decimals))
-        means.append(tuple(current_mean))
-        actual_mice_list.append(actual_mice)
-
-    if ignore == [] or (
-        all(num_mice == actual_mice_list[0] for num_mice in actual_mice_list)
-        and ignore is not None
-    ):
-        return means, actual_mice
-    else:
-        print("Incomplete dataset, try using a different restriction.")
-        return [], -1
+    current_timepoint.add_mice(timepoint_mice)
+    return current_timepoint
 
 
-def _round_populations(populations, decimals=None):
-
-    if decimals is None:
-        decimals = 2
-
-    rounded_data = []
-
-    for mouse, mouse_data in enumerate(populations):
-        rounded_mouse = []
-        for column in mouse_data:
-            rounded_mouse.append(
-                tuple([round(current_value, decimals) for current_value in column])
-            )
-        rounded_data.append(deepcopy(rounded_mouse))
-
-    return rounded_data
-
-
-def slope_plots(
-    title,
-    means,
-    neg_means,
-    times,
-    patch_names,
-    patch_indices,
-    file_name=None,
-    extension=None,
-    zeroline=False,
-    show=False,
+def _timepoint_extraction_naive(
+    tissue,
+    indices,
+    time_names,
+    timepoint_index,
+    column,
+    file_name,
 ):
-
-    height = 14
-    sup_title_size = 80
-    title_size = 70
-    label_size = 60
-    tick_size = 50
-    decimals = 2
-
-    fig = plt.figure(constrained_layout=True, figsize=(8 * height, 3 * height))
-    fig.suptitle("\n" + title + "\n", color="k", fontsize=sup_title_size)
-
-    max_y = max([max(values) for values in means]) * 2
-
-    col_figs = fig.subfigures(3, 8, wspace=0.05, hspace=0.05)
-    fig_list = np.empty((3, 8), dtype=object)
-
-    for current_row, _ in enumerate(col_figs):
-        for current_col in range(7):
-            if current_row == 0:
-                col_figs[current_row][current_col].suptitle(
-                    patch_names[current_col], fontsize=title_size
-                )
-            fig_list[current_row][current_col] = col_figs[current_row][
-                current_col
-            ].subplots(1)
-            current_patch = patch_indices[current_col]
-
-            fig_list[current_row][current_col].set_yscale("symlog", linthresh=100)
-            fig_list[current_row][current_col].set_ylim(-50, max_y)
-            fig_list[current_row][current_col].set_xlim(5, 105)
-            fig_list[current_row][current_col].tick_params(
-                width=3, length=10, labelsize=tick_size
-            )
-
-            if current_col == 0:
-                fig_list[current_row][current_col].set_ylabel(
-                    f"{patch_names[current_row]} challenge (\\# of cells)",
-                    fontsize=label_size,
-                )
-            else:
-                fig_list[current_row][current_col].set_yticklabels([])
-
-            fig_list[current_row][current_col].set_xticks(times)
-            if current_row == len(col_figs) - 1:
-                fig_list[current_row][current_col].set_xticklabels(times)
-                fig_list[current_row][current_col].set_xlabel(
-                    "Days post infection", fontsize=label_size
-                )
-            else:
-                fig_list[current_row][current_col].set_xticklabels([])
-
-            fig_list[current_row][current_col].plot(
-                times[:2], [value[current_patch] for value in means[:2]], "-", color="k"
-            )
-            fig_list[current_row][current_col].plot(
-                times[1:],
-                [means[1][current_patch], means[current_row + 2][current_patch]],
-                "-",
-                color="k",
-            )
-
-            fig_list[current_row][current_col].plot(
-                times[:2],
-                [value[current_patch] for value in means[:2]],
-                "D",
-                ms=40,
-                color="teal",
-            )
-            fig_list[current_row][current_col].plot(
-                times[2],
-                [means[current_row + 2][current_patch]],
-                "D",
-                ms=40,
-                color="teal",
-            )
-
-            slope_1 = (means[1][current_patch] - means[0][current_patch]) / (
-                times[1] - times[0]
-            )
-            y1 = (means[1][current_patch] + means[0][current_patch]) / 2
-            slope_2 = (
-                means[current_row + 2][current_patch] - means[1][current_patch]
-            ) / (times[2] - times[1])
-            y2 = (means[current_row + 2][current_patch] + means[1][current_patch]) / 8
-
-            fig_list[current_row][current_col].text(
-                40,
-                y1,
-                str(round(slope_1, decimals)),
-                fontsize=label_size,
-                bbox=dict(edgecolor="w", facecolor="w", alpha=1),
-            )
-            fig_list[current_row][current_col].text(
-                80,
-                y2,
-                str(round(slope_2, decimals)),
-                fontsize=label_size,
-                bbox=dict(edgecolor="w", facecolor="w", alpha=1),
-            )
-
-            if zeroline:
-                fig_list[current_row][current_col].axhline(
-                    y=0, color="teal", linestyle="-"
-                )
-
-    for current_row, _ in enumerate(col_figs):
-        if current_row == 0:
-            col_figs[current_row][7].suptitle(patch_names[7], fontsize=title_size)
-        fig_list[current_row][7] = col_figs[current_row][7].subplots(1)
-        fig_list[current_row][7].yaxis.tick_right()
-
-        fig_list[current_row][7].set_yscale("symlog", linthresh=100)
-        fig_list[current_row][7].set_ylim(
-            min([value[0] for value in neg_means]) / 2,
-            max([value[0] for value in neg_means]) * 2,
-        )
-        fig_list[current_row][7].set_xlim(5, 105)
-        fig_list[current_row][7].tick_params(width=3, length=10, labelsize=tick_size)
-
-        fig_list[current_row][7].set_xticks(times)
-        if current_row == len(col_figs) - 1:
-            fig_list[current_row][7].set_xticklabels(times)
-            fig_list[current_row][7].set_xlabel(
-                "Days post infection", fontsize=label_size
-            )
-        else:
-            fig_list[current_row][7].set_xticklabels([])
-
-        fig_list[current_row][7].plot(
-            times[:2], [value[0] for value in neg_means[:2]], "-", color="k"
-        )
-        fig_list[current_row][7].plot(
-            times[1:], [neg_means[1][0], neg_means[current_row + 2][0]], "-", color="k"
-        )
-
-        fig_list[current_row][7].plot(
-            times[:2], [value[0] for value in neg_means[:2]], "D", ms=40, color="teal"
-        )
-        fig_list[current_row][7].plot(
-            times[2], [neg_means[current_row + 2][0]], "D", ms=40, color="teal"
-        )
-
-        slope_1 = (neg_means[1][0] - neg_means[0][0]) / (times[1] - times[0])
-        y1 = (neg_means[1][0] + neg_means[0][0]) / 2
-        slope_2 = (neg_means[current_row + 2][0] - neg_means[1][0]) / (
-            times[2] - times[1]
-        )
-        y2 = (neg_means[current_row + 2][0] + neg_means[1][0]) / 3
-
-        fig_list[current_row][7].text(
-            40,
-            y1,
-            str(round(slope_1, decimals)),
-            fontsize=label_size,
-            bbox=dict(edgecolor="w", facecolor="w", alpha=1),
-        )
-        fig_list[current_row][7].text(
-            70,
-            y2,
-            str(round(slope_2, decimals)),
-            fontsize=label_size,
-            bbox=dict(edgecolor="w", facecolor="w", alpha=1),
-        )
-
-    if extension is None:
-        extension = "pdf"
-    if file_name is not None:
-        fig.savefig(f"{file_name}.{extension}")
-    if not show:
-        plt.close("all")
-
-
-def _old_dataframe(data, priming, time, organ, cd45, columns, patches, timepoints):
-
-    organised_data = []
-
-    for current_infection, _ in enumerate(data):
-        for current_row, _ in enumerate(data[current_infection]):
-            for current_col, _ in enumerate(data[current_infection][current_row]):
-                new_item = [
-                    organ[current_infection],
-                    cd45[current_infection],
-                    priming[current_infection],
-                    time[current_row],
-                    data[current_infection][current_row][current_col],
-                    patches[current_col],
-                    timepoints[current_row],
-                ]
-
-                organised_data.append(new_item[:])
-
-    return pd.DataFrame(organised_data, columns=columns)
-
-
-def plot_dataframe(data, priming, time, organ, cd45, columns, patches, timepoints):
-
-    positive_data = [population_means(data[i])[0] for i in range(3)]
-
-    organised_data = []
-
-    for current_infection, _ in enumerate(positive_data):
-        for current_row, _ in enumerate(positive_data[current_infection]):
-            for current_col, _ in enumerate(
-                positive_data[current_infection][current_row]
-            ):
-                new_item = [
-                    organ[current_infection],
-                    cd45[current_infection],
-                    priming[current_infection],
-                    time[current_row],
-                    positive_data[current_infection][current_row][current_col],
-                    patches[current_col],
-                    timepoints[current_row],
-                ]
-
-                organised_data.append(deepcopy(new_item))
-
-    initial_dataframe = pd.DataFrame(organised_data, columns=columns)
-
-    total_data = [population_means(data[i + 3])[0] for i in range(3)]
-
-    organised_data = []
-
-    for current_infection in range(3):
-        for current_row, _ in enumerate(total_data[current_infection]):
-            # for current_col, _ in enumerate(data[current_infection][current_row]):
-            new_item = [
-                organ[current_infection],
-                cd45[current_infection],
-                priming[current_infection],
-                time[current_row],
-                total_data[current_infection][current_row][0],
-                "Total",
-                timepoints[current_row],
-            ]
-
-            organised_data.append(deepcopy(new_item))
-
-    total_dataframe = pd.DataFrame(organised_data, columns=columns)
-
-    return initial_dataframe.append(total_dataframe, ignore_index=True)
-
-
-def stats_dataframe_infection(full_data, columns, complete=False):
     """
-    Generates a data frame containing the data from ``full_data`` with column names given by ``columns``.
+    Creates a naive ``Timepoint`` containing the data from ``file_name`` for ``timepoint_index``.
 
     Parameters
     ----------
-    full_data : tuple
-        Tuple containing the list of positive stained cells, and the list of negative cells.
-    columns : list[str]
-        List of names of the columns of the data.
-    complete : bool
-        Consider only challenge timepoint data if False.
+    tissue : str
+        Tissue the sample was taken from.
+    indices : list[int]
+        List of column indices of the populations.
+    time_names : list[str]
+        List of  timepoint names in the csv file.
+    timepoint_index : int
+        Current timepoint.
+    column : str
+        Tetramer column (used only when data_type is naive).
+    file_name : str
+        Name of the file to be opened.
 
     Returns
     -------
-    pd.DataFrame
-        Data frame containing the organised extracted data.
-    """
-
-    if not complete:
-        challenge_timepoints = {2: "WT", 3: "T8A", 4: "N3A"}
-    else:
-        challenge_timepoints = {0: "Primary", 1: "Memory", 2: "WT", 3: "T8A", 4: "N3A"}
-
-    organised_data = []
-
-    data, data_neg = full_data
-
-    for current_mouse, current_data in enumerate(data):
-        for index, column_data in enumerate(current_data):
-
-            if index not in challenge_timepoints:
-                continue
-
-            current_values = []
-
-            for cell_numbers in column_data:
-                if cell_numbers == -1:
-                    break
-                else:
-                    current_values.append(cell_numbers)
-            else:
-                current_values.append(data_neg[current_mouse][index][0])
-                current_values.insert(0, challenge_timepoints[index])
-                organised_data.append(deepcopy(current_values))
-
-    organised_dataframe = pd.DataFrame(organised_data, columns=columns)
-
-    return organised_dataframe
-
-
-def stats_dataframe_naive(data, columns):
-    """
-
-    Parameters
-    ----------
-    data : tuple
-    columns : list[str]
-
-    Returns
-    -------
-    pd.DataFrame
-        Data frame containing the organised extracted data.
+    Timepoint
+        Specified timepoint of the experiment.
     """
 
     non_zero_positions = {"WT": (0, 2, 4, 6), "T8A": (1, 2, 5, 6), "N3A": (3, 4, 5, 6)}
-    column_indexes = {0: "WT", 1: "T8A", 2: "N3A"}
+    current_timepoint = Timepoint()
+    timepoint_mice = []
 
-    organised_data = []
+    with open(file_name, "r") as file:
+        csvfile = csv.reader(file)
+        next(csvfile)
 
-    for current_mouse, current_data in enumerate(data):
-        organised_data.append([])
-        for column_index, column_data in enumerate(current_data):
-            for index, cell_numbers in enumerate(column_data):
-                if index in non_zero_positions[column_indexes[column_index]]:
-                    organised_data[current_mouse].append(cell_numbers)
-
-    organised_dataframe = pd.DataFrame(organised_data, columns=columns)
-
-    return organised_dataframe
+        for row in csvfile:
+            if (
+                row[indices[0]].rstrip().lower() == tissue.lower()
+                and row[indices[1]].rstrip().lower()
+                == time_names[timepoint_index].rstrip().lower()
+            ):
+                values = list(np.zeros(7))
+                for index, value_index in zip(non_zero_positions[column], indices[2:6]):
+                    values[index] = float(row[value_index])
+                timepoint_mice.append(Mouse(*values))
+    current_timepoint.add_mice(timepoint_mice)
+    return current_timepoint
 
 
 def _pairs_stats(
     x, y, comparisons=1, corr_position=0, corr_total=1, spearman=True, **kwargs
 ):
+    """
+    Annotates the current matplotlib Axes with the value of the correlation between ``x`` and ``y``.
+
+    If multiple correlations are calculated the values are aligned vertically.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        First set of values.
+    y : numpy.ndarray
+        Second set of values.
+    comparisons : int
+        Number of comparisons.
+    corr_position : int
+        Position of the correlation within all correlations.
+    corr_total : int
+        Total number of correlations.
+    spearman : bool
+        If True the Spearman rank correlations is used, otherwise the Pearson correlation is used.
+    """
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         try:
@@ -2329,9 +1822,9 @@ def _spearman_pvalue(x, y):
 
     Parameters
     ----------
-    x : np.ndarray
+    x : numpy.ndarray
         First set of values
-    y : np.ndarray
+    y : numpy.ndarray
         Second set of values.
 
     Returns
@@ -2356,7 +1849,7 @@ def _asterisk_significance(pvalue, comparisons=None):
     pvalue : float
         p value to be considered
     comparisons : int
-        number of comparisons.
+        Number of comparisons.
 
     Returns
     -------
@@ -2374,34 +1867,262 @@ def _asterisk_significance(pvalue, comparisons=None):
         return ""
 
 
-def separate_data(data, primary, challenge, tetramer):
-    return data[
-        (data.Priming == primary)
-        & (data.Tetramer == tetramer)
-        & (
-            (data.Timepoint == "Primary")
-            | (data.Timepoint == "Memory")
-            | (data.Timepoint == challenge)
+def header_clipping(experiment, cd45="+", file_name=None, check=False):
+    """
+    Removes trailing whitespace from headers in ``experiment`` file for ``cd45`` positivity in the ``{experiment} priming`` directory.
+
+    A clean version of the file (``experiment cd45 .csv``) is created in the ``Data`` directory.
+
+    Parameters
+    ----------
+    experiment : str
+        Primary infection of the experiment.
+    cd45 : str
+        Positivity for CD45.
+    file_name : str
+        Name of the csv file to be edited. If None the file NTW-CD45{cd45}.csv is opened.
+    check : bool
+        If True prints the names of the columns without trailing whitespace.
+    """
+
+    if file_name is None:
+        file_name = "NTW-CD45"
+        newname = f"Data/{experiment}{cd45}.csv"
+    else:
+        newname = f"Data/{experiment}-{file_name}{cd45}.csv"
+
+    with open(f"{experiment} priming/{file_name}{cd45}.csv") as old_file:
+        old_csv = csv.reader(old_file)
+
+        with open(newname, "w") as newfile:
+            new_csv = csv.writer(newfile)
+
+            header = True
+            for row in old_csv:
+                if header:
+                    new_names = []
+                    for current_name in row:
+                        new_names.append(current_name.rstrip())
+                    new_csv.writerow(new_names)
+                    header = False
+                else:
+                    new_csv.writerow(row)
+            if check:
+                print(new_names)
+
+
+def time_name_list(experiment, headers, cd45="+", file_name=None):
+    """
+    Extracts the names of the timepoints from the ``cd45`` positive ``experiment`` file in the ``Data`` directory.
+
+    Parameters
+    ----------
+    experiment : str
+        Primary infection of the experiment.
+    headers : list[str]
+        List with the ordered header names of the file.
+    cd45 : str
+        Positivity for CD45.
+    file_name : str
+        Name of the file to be opened. If None the file {experiment}{cd45}.csv  is opened.
+
+    Returns
+    -------
+    list[str]
+        List of timepoint names for the experiment.
+    """
+
+    if file_name is None:
+        file_name = f"Data/{experiment}{cd45}.csv"
+    else:
+        file_name = f"Data/{experiment}-{file_name}{cd45}.csv"
+
+    names = []
+
+    with open(file_name, "r") as file:
+        csvfile = csv.reader(file)
+
+        header = True
+        for row in csvfile:
+            if header:
+                time_name = row.index(headers[1])
+                header = False
+            else:
+                if row[time_name].rstrip() not in names:
+                    names.append(row[time_name].rstrip())
+    return names
+
+
+def timepoint_extraction(
+    tissue,
+    indices,
+    time_names,
+    timepoint_index,
+    data_type,
+    column,
+    file_name,
+):
+    """
+    Creates a ``Timepoint`` containing the data from ``file_name`` for ``timepoint_index``.
+
+    Parameters
+    ----------
+    tissue : str
+        Tissue the sample was taken from.
+    indices : list[int]
+        List of column indices of the populations.
+    time_names : list[str]
+        List of  timepoint names in the csv file.
+    timepoint_index : int
+        Current timepoint.
+    data_type : str
+        Type of sample considered.
+    column : str
+        Tetramer column (used only when data_type is naive).
+    file_name : str
+        Name of the file to be opened.
+
+    Returns
+    -------
+    Timepoint
+        Specified timepoint of the experiment.
+    """
+
+    if data_type is None:
+        return _timepoint_extraction_challenge(
+            tissue,
+            indices,
+            time_names,
+            timepoint_index,
+            file_name,
         )
-    ]
+    elif data_type == "naive" and column is not None:
+        return _timepoint_extraction_naive(
+            tissue,
+            indices,
+            time_names,
+            timepoint_index,
+            column,
+            file_name,
+        )
 
 
-# SEPARATE INTO ONE LINE FOR FIRST CONTRACTION AND 3 LINES FOR EXPANSIONS [FUNCTION NEEDS UPDATING] (DOWN)
+def data_extraction(
+    primary,
+    tissue,
+    headers,
+    time_names,
+    standard_names=None,
+    cd45=None,
+    timepoints=None,
+    data_type=None,
+    column=None,
+    file_name=None,
+):
+    """
+    Creates an ``Experiment`` containing the data from ``file_name`` for the primary infection ``primary`` in ``tissue``.
 
+    Parameters
+    ----------
+    primary : str
+        Primary infection of the experiment.
+    tissue : str
+        Tissue the sample was taken from.
+    headers : list[str]
+        List of names of the relevant columns in the csv file.
+    time_names : list[str]
+        List of  timepoint names in the csv file.
+    standard_names : list[str]
+        List of names to be used for the timepoints.
+    cd45 : str
+        Positivity for CD45.
+    timepoints : int
+        Number of timepoints considered.
+    data_type : str
+        Type of sample considered.
+    column : str
+        Tetramer column (used only when data_type is naive).
+    file_name : str
+        Name of the file to be opened. If None the file {experiment}{cd45}.csv  is opened.
 
-def data_update(data, tetramer):
+    Returns
+    -------
+    Experiment
+        Experiment containing the specified data read from the file.
+    """
 
-    tetramer_list = ["WT", "T8A", "N3A"]
-    updated_data = []
+    if cd45 is None:
+        cd45 = "+"
 
-    for primary in tetramer_list:
-        for challenge in tetramer_list:
-            updated_data.append(separate_data(data, primary, challenge, tetramer).Cells)
+    if cd45 == "+":
+        cd45_name = "circulating"
+    else:
+        cd45_name = "resident"
 
-    return updated_data
+    if file_name is None:
+        file_name = f"Data/{primary}{cd45}.csv"
+    else:
+        file_name = f"Data/{primary}-{file_name}{cd45}.csv"
+
+    experiment_organ = tissue[0].upper() + tissue[1:]
+    if experiment_organ[-1] == "s":
+        experiment_organ = experiment_organ[:-1]
+
+    current_experiment = Experiment(
+        " ".join([experiment_organ, cd45_name, "--", primary, "primary"]),
+        primary,
+    )
+    experiment_timepoints = []
+
+    if timepoints is None:
+        num_timepoints = len(time_names)
+    else:
+        num_timepoints = timepoints
+
+    indices = _column_index(file_name, headers, data_type=data_type)
+
+    for current_time_name in range(num_timepoints):
+        current_timepoint = timepoint_extraction(
+            tissue,
+            indices,
+            time_names,
+            current_time_name,
+            data_type,
+            column,
+            file_name,
+        )
+        experiment_timepoints.append(current_timepoint)
+
+    current_experiment.add_timepoints(
+        experiment_timepoints, time_names[:num_timepoints]
+    )
+
+    if standard_names is not None:
+        current_experiment.change_names(standard_names)
+
+    return current_experiment
 
 
 def positive_cells_df(experiments, timepoint, tetramer, file_name=None):
+    """
+    Generates a DataFrame containing the total populations of cells that can recognise ``tetramer`` for the experiments listed in ``experiments``.
+
+    Parameters
+    ----------
+    experiments : list[Experiment]
+        Experiments to be considered.
+    timepoint : str
+        Timepoint to be considered.
+    tetramer : str
+        Tetramer the cells are positive for.
+    file_name : str
+        Name of the file to save the DataFrame to. If None the DataFrame is not saved to a file.
+
+    Returns
+    -------
+    pandas.core.frame.DataFrame
+        DataFrame with the tetramer positive cells for the experiments.
+    """
     df = pd.concat(
         [primary.positive_cells_df(timepoint, tetramer) for primary in experiments],
         ignore_index=True,
@@ -2414,6 +2135,25 @@ def positive_cells_df(experiments, timepoint, tetramer, file_name=None):
 
 
 def decay_slopes_df(experiments, times, tetramer=None, file_name=None):
+    """
+    Generates a DataFrame with the decay slopes from priming to memory for the experiments listed in ``experiments``.
+
+    Parameters
+    ----------
+    experiments : list[Experiment]
+        Experiments for which the slopes are calculated.
+    times : list[int]
+        Times at which the Memory and Challenge timepoints take place.
+    tetramer : str
+        Tetramer for which the slopes are calculated. If None the slope is calculated for the total population.
+    file_name : str
+        Name of the file to save the DataFrame to. If None the DataFrame is not saved to a file.
+
+    Returns
+    -------
+    pandas.core.frame.DataFrame
+        DataFrame with the decay slopes for the experiments.
+    """
     df = pd.concat(
         [
             primary.slope_df(times=times, decay=True, tetramer=tetramer)
@@ -2429,6 +2169,27 @@ def decay_slopes_df(experiments, times, tetramer=None, file_name=None):
 
 
 def expansion_slopes_df(experiment, times, challenges, tetramer=None, file_name=None):
+    """
+    Generates a DataFrame with the expansion slopes from memory to challenge for ``experiment``.
+
+    Parameters
+    ----------
+    experiment : Experiment
+        Experiment for which the slopes are calculated.
+    times : list[int]
+        Times at which the Memory and Challenge timepoints take place.
+    challenges : list[str]
+        Challenges considered for the calculation of the expansion slopes.
+    tetramer : str
+        Tetramer for which the slopes are calculated. If None the slope is calculated for the total population.
+    file_name: str
+        Name of the file to save the DataFrame to. If None the DataFrame is not saved to a file.
+
+    Returns
+    -------
+    pandas.core.frame.DataFrame
+        DataFrame with the expansion slopes of the challenges for the experiment.
+    """
     df = pd.concat(
         [
             experiment.slope_df(
