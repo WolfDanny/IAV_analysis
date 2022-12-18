@@ -1887,11 +1887,11 @@ def header_clipping(experiment, cd45="+", file_name=None, check=False):
 
     if file_name is None:
         file_name = "NTW-CD45"
-        newname = f"Data/{experiment}{cd45}.csv"
+        newname = f"Data/Clean/{experiment}{cd45}.csv"
     else:
-        newname = f"Data/{experiment}-{file_name}{cd45}.csv"
+        newname = f"Data/Clean/{experiment}-{file_name}{cd45}.csv"
 
-    with open(f"{experiment} priming/{file_name}{cd45}.csv") as old_file:
+    with open(f"Data/Raw/{experiment} priming/{file_name}{cd45}.csv") as old_file:
         old_csv = csv.reader(old_file)
 
         with open(newname, "w") as newfile:
@@ -1913,7 +1913,7 @@ def header_clipping(experiment, cd45="+", file_name=None, check=False):
 
 def time_name_list(experiment, headers, cd45="+", file_name=None):
     """
-    Extracts the names of the timepoints from the ``cd45`` positive ``experiment`` file in the ``Data`` directory.
+    Extracts the names of the timepoints from the ``cd45`` positive ``experiment`` file in the ``Data/Clean/`` directory.
 
     Parameters
     ----------
@@ -1933,9 +1933,9 @@ def time_name_list(experiment, headers, cd45="+", file_name=None):
     """
 
     if file_name is None:
-        file_name = f"Data/{experiment}{cd45}.csv"
+        file_name = f"Data/Clean/{experiment}{cd45}.csv"
     else:
-        file_name = f"Data/{experiment}-{file_name}{cd45}.csv"
+        file_name = f"Data/Clean/{experiment}-{file_name}{cd45}.csv"
 
     names = []
 
@@ -2060,9 +2060,9 @@ def data_extraction(
         cd45_name = "resident"
 
     if file_name is None:
-        file_name = f"Data/{primary}{cd45}.csv"
+        file_name = f"Data/Clean/{primary}{cd45}.csv"
     else:
-        file_name = f"Data/{primary}-{file_name}{cd45}.csv"
+        file_name = f"Data/Clean/{primary}-{file_name}{cd45}.csv"
 
     experiment_organ = tissue[0].upper() + tissue[1:]
     if experiment_organ[-1] == "s":
