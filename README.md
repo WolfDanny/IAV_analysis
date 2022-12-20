@@ -1,4 +1,5 @@
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![DOI](https://zenodo.org/badge/472421449.svg)](https://zenodo.org/badge/latestdoi/472421449) [![Code style:
+black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 # Statistical analysis of IAV infection data from mice
 
 This repository contains:
