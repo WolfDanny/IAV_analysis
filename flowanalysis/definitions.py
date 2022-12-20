@@ -1241,7 +1241,7 @@ class Experiment:
         title_size : int
             Font size of the title of the plot.
         sub_title_size : int
-            Font size of the sub-titles in the plot.
+            Font size of the subtitles in the plot.
         tick_size : int
             Font size of the tick labels.
         w_space : float
